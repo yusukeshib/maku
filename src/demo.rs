@@ -1,4 +1,5 @@
 use clap::Parser;
+use three_d::SquareMatrix;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -11,7 +12,9 @@ struct Args {
     height: u32,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    let args = Args::parse();
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .build(&event_loop)
@@ -28,22 +31,29 @@ fn main() {
     )
     .unwrap();
 
-    let mut camera = three_d::Camera::new_perspective(
-        three_d::Viewport::new_at_origo(1, 1),
-        three_d::vec3(0.0, 2.0, 4.0),
-        three_d::vec3(0.0, 0.0, 0.0),
-        three_d::vec3(0.0, 1.0, 0.0),
-        three_d::degrees(45.0),
-        0.1,
-        10.0,
-    );
     let mut frame_input_generator = three_d::FrameInputGenerator::from_winit_window(&window);
 
+    // dummy input
+    let mut loaded = three_d_asset::io::load_async(&[args.input]).await.unwrap();
+    let image = three_d::Texture2D::new(&context, &loaded.deserialize("").unwrap());
+
     // dummy
+    let width = image.width() as f32;
+    let height = image.height() as f32;
     let model = three_d::Gm::new(
-        three_d::Mesh::new(&context, &three_d::CpuMesh::cube()),
+        three_d::Rectangle::new(
+            &context,
+            three_d::vec2(width * 0.5, height * 0.5),
+            three_d::degrees(0.0),
+            width,
+            height,
+        ),
         three_d::ColorMaterial {
-            color: three_d::Srgba::GREEN,
+            texture: Some(three_d::Texture2DRef {
+                texture: image.into(),
+                transformation: three_d::Mat3::identity(),
+            }),
+            color: three_d::Srgba::WHITE,
             ..Default::default()
         },
     );
@@ -72,14 +82,10 @@ fn main() {
             winit::event::Event::RedrawRequested(_) => {
                 let frame_input = frame_input_generator.generate(&context);
 
-                camera.set_viewport(frame_input.viewport);
-                // model.animate(frame_input.accumulated_time as f32);
                 frame_input
                     .screen()
-                    .clear(three_d::ClearState::color_and_depth(
-                        0.8, 0.8, 0.8, 1.0, 1.0,
-                    ))
-                    .render(&camera, &model, &[]);
+                    .clear(three_d::ClearState::default())
+                    .render(&three_d::Camera::new_2d(frame_input.viewport), &model, &[]);
 
                 context.swap_buffers().unwrap();
                 control_flow.set_poll();
