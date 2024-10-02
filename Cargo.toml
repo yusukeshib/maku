@@ -1,0 +1,16 @@
+[package]
+name = "maku"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.89"
+clap = { version = "4.5.18", features = ["derive"] }
+three-d = "0.17.0"
+three-d-asset = {version = "0.7.0",features = ["png"] }
+tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
+winit = "0.28.7"
+
+[[bin]]
+name = "demo"
+path = "src/demo.rs"
