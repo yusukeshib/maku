@@ -7,16 +7,17 @@ This is my personal project to re-learn WebAssembly, Rust, OpenGL, WebGL with a 
 The command line run on your PC natively, and it's library is build for WASM too.
 And you can run the GLSL testing web app on the demo website of this repo.
 
-## Initial functionalities to aim
+## Functionality
 
-- [ ] Study the design of ImageMagick command lines and improve it
-- [ ] Study the design of OpenCV and think about it
-- [ ] Given an input image, and one GLSL shader file, output an image with specified output path.
-- [ ] Preview filtered image on a app window.
-- [ ] Watch option of GLSL shader file, to develop GLSL efficiently with the app preview window.
-- [ ] Chaining filters
+- Command line
+	- Generate a new image
+	- Preview screen
+	- Watch input files
+- Node editor to edit project on web
+	- Variables
+	- Math filters
+	- Machine learning filters
+- Examples
+    - One of filters is face detector machine learning filter, and the detected face rectangles in the input image are pixelated with a pixelated filter.
 
-## In the future
-
-- [ ] Support various filter types including AI models like StableDiffusion
 
