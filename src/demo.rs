@@ -16,24 +16,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let event_loop = winit::event_loop::EventLoop::new();
-    let window = winit::window::WindowBuilder::new()
-        .with_max_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
-        .with_min_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
-        .with_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
-        .build(&event_loop)
-        .unwrap();
-    let context = three_d::WindowedContext::from_winit_window(
-        &window,
-        three_d::SurfaceSettings {
-            vsync: true,
-            depth_buffer: 0,
-            stencil_buffer: 0,
-            multisamples: 4,
-            hardware_acceleration: three_d::HardwareAcceleration::Preferred,
-        },
-    )
-    .unwrap();
+    let context = three_d::HeadlessContext::new()?;
 
     // dummy input
     let mut loaded = three_d_asset::io::load_async(&[args.input]).await.unwrap();
@@ -91,11 +74,29 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 
+    // let event_loop = winit::event_loop::EventLoop::new();
+    // let window = winit::window::WindowBuilder::new()
+    //     .with_max_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
+    //     .with_min_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
+    //     .with_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
+    //     .build(&event_loop)
+    //     .unwrap();
+    // let context = three_d::WindowedContext::from_winit_window(
+    //     &window,
+    //     three_d::SurfaceSettings {
+    //         vsync: true,
+    //         depth_buffer: 0,
+    //         stencil_buffer: 0,
+    //         multisamples: 4,
+    //         hardware_acceleration: three_d::HardwareAcceleration::Preferred,
+    //     },
+    // )
+    // .unwrap();
+
     // let mut frame_input_generator = three_d::FrameInputGenerator::from_winit_window(&window);
     //
     // event_loop.run(move |event, _, control_flow| {
     //     control_flow.set_wait();
-
     //     match event {
     //         winit::event::Event::WindowEvent { ref event, .. } => {
     //             frame_input_generator.handle_winit_window_event(event);
@@ -117,12 +118,10 @@ async fn main() -> anyhow::Result<()> {
     //         }
     //         winit::event::Event::RedrawRequested(_) => {
     //             let frame_input = frame_input_generator.generate(&context);
-
     //             frame_input
     //                 .screen()
     //                 .clear(three_d::ClearState::default())
-    //                 .render(&three_d::Camera::new_2d(frame_input.viewport), &model, &[]);
-
+    //                 .render(&camera, &model, &[]);
     //             context.swap_buffers().unwrap();
     //             window.request_redraw();
     //         }
