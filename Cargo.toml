@@ -10,6 +10,7 @@ three-d = "0.17.0"
 three-d-asset = {version = "0.7.0",features = ["png"] }
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 winit = "0.28.7"
+image = "0.25.2"
 
 [[bin]]
 name = "demo"
