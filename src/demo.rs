@@ -17,6 +17,9 @@ async fn main() {
     let args = Args::parse();
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
+        .with_max_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
+        .with_min_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
+        .with_inner_size(winit::dpi::PhysicalSize::new(args.width, args.height))
         .build(&event_loop)
         .unwrap();
     let context = three_d::WindowedContext::from_winit_window(
@@ -88,10 +91,11 @@ async fn main() {
                     .render(&three_d::Camera::new_2d(frame_input.viewport), &model, &[]);
 
                 context.swap_buffers().unwrap();
-                control_flow.set_poll();
                 window.request_redraw();
             }
             _ => (),
         }
     });
+
+    // TODO: Output PNG image
 }
