@@ -116,13 +116,20 @@ async fn main() -> Result<(), MakuError> {
         let positions = three_d::VertexBuffer::new_with_data(
             &context,
             &[
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(0.0, 1.0, 0.0),
+                three_d::vec3(-1.0, -1.0, 0.0),
+                three_d::vec3(-1.0, 1.0, 0.0),
                 three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(0.0, 0.0, 0.0),
+                three_d::vec3(-1.0, -1.0, 0.0),
                 three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 0.0, 0.0),
+                three_d::vec3(1.0, -1.0, 0.0),
             ],
+        );
+        program.use_uniform(
+            "u_resolution",
+            three_d::Vector2 {
+                x: args.width as f32,
+                y: args.height as f32,
+            },
         );
         program.use_vertex_attribute("position", &positions);
         program.use_texture("u_texture", &tex);
