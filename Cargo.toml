@@ -14,5 +14,5 @@ winit = "0.28.7"
 image = "0.25.2"
 
 [[bin]]
-name = "demo"
-path = "src/demo.rs"
+name = "maku"
+path = "src/maku.rs"
