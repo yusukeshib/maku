@@ -1,12 +1,6 @@
 use clap::Parser;
-use thiserror::Error;
+use maku::error::MakuError;
 use three_d::{Object, SquareMatrix};
-
-#[derive(Error, Debug)]
-enum MakuError {
-    #[error("Image error")]
-    Image(#[from] image::ImageError),
-}
 
 #[derive(Parser, Debug)]
 struct Args {
