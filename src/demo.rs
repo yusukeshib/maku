@@ -6,8 +6,6 @@ use three_d::{Object, SquareMatrix};
 enum MakuError {
     #[error("Image error")]
     Image(#[from] image::ImageError),
-    #[error("Unknown maku error")]
-    Unknown,
 }
 
 #[derive(Parser, Debug)]
@@ -86,7 +84,6 @@ async fn main() -> Result<(), MakuError> {
                     texture: image.into(),
                     transformation: three_d::Mat3::identity(),
                 }),
-                color: three_d::Srgba::WHITE,
                 ..Default::default()
             },
         );
@@ -145,14 +142,13 @@ async fn main() -> Result<(), MakuError> {
     let model = three_d::Gm::new(
         three_d::Rectangle::new(
             &context,
-            three_d::vec2(0.0, 0.0),
+            three_d::vec2(args.width as f32 * 0.5, args.height as f32 * 0.5),
             three_d::degrees(0.0),
             args.width as f32,
             args.height as f32,
         ),
         three_d::ColorMaterial {
             texture: Some(tex2.into()),
-            color: three_d::Srgba::WHITE,
             ..Default::default()
         },
     );
@@ -161,10 +157,6 @@ async fn main() -> Result<(), MakuError> {
     // Output
 
     if let Some(output_path) = args.output {
-        context.set_scissor(three_d::ScissorBox::new_at_origo(
-            target.width(),
-            target.height(),
-        ));
         let mut texture = target.resolve();
         let pixels: Vec<u8> = texture
             .as_color_target(None)
