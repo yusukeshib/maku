@@ -1,5 +1,14 @@
 use clap::Parser;
-use three_d::SquareMatrix;
+use thiserror::Error;
+use three_d::{Object, SquareMatrix};
+
+#[derive(Error, Debug)]
+enum MakuError {
+    #[error("Image error")]
+    Image(#[from] image::ImageError),
+    #[error("Unknown maku error")]
+    Unknown,
+}
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -14,10 +23,10 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), MakuError> {
     let args = Args::parse();
 
-    // TODO: Not working with shaders
+    // FIXME: Not working with shaders
     // let context = three_d::HeadlessContext::new()?;
 
     let event_loop = winit::event_loop::EventLoop::new();
@@ -39,61 +48,117 @@ async fn main() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    // dummy input
+    let viewport = three_d::Viewport::new_at_origo(args.width, args.height);
+    let camera = three_d::Camera::new_2d(viewport);
+
+    //
+    // Draw the test image to an offscreen texture
+    //
+
+    // Load a test image
     let mut loaded = three_d_asset::io::load_async(&[args.input]).await.unwrap();
     let image = three_d::Texture2D::new(&context, &loaded.deserialize("").unwrap());
 
-    // dummy
-    let width = image.width() as f32;
-    let height = image.height() as f32;
-    let model = three_d::Gm::new(
-        three_d::Rectangle::new(
-            &context,
-            three_d::vec2(width * 0.5, height * 0.5),
-            three_d::degrees(0.0),
-            width,
-            height,
-        ),
-        three_d::ColorMaterial {
-            texture: Some(three_d::Texture2DRef {
-                texture: image.into(),
-                transformation: three_d::Mat3::identity(),
-            }),
-            color: three_d::Srgba::WHITE,
-            ..Default::default()
-        },
+    let mut tex = three_d::Texture2D::new_empty::<[u8; 4]>(
+        &context,
+        args.width,
+        args.height,
+        three_d::Interpolation::Linear,
+        three_d::Interpolation::Linear,
+        None,
+        three_d::Wrapping::ClampToEdge,
+        three_d::Wrapping::ClampToEdge,
     );
+    tex.as_color_target(None).write(|| {
+        let width = image.width() as f32;
+        let height = image.height() as f32;
 
-    // Output PNG image
-    let viewport = three_d::Viewport::new_at_origo(args.width, args.height);
-    let camera = three_d::Camera::new_2d(viewport);
+        let model = three_d::Gm::new(
+            three_d::Rectangle::new(
+                &context,
+                three_d::vec2(width * 0.5, height * 0.5),
+                three_d::degrees(0.0),
+                width,
+                height,
+            ),
+            three_d::ColorMaterial {
+                texture: Some(three_d::Texture2DRef {
+                    texture: image.into(),
+                    transformation: three_d::Mat3::identity(),
+                }),
+                color: three_d::Srgba::WHITE,
+                ..Default::default()
+            },
+        );
+
+        model.render(&camera, &[]);
+
+        Ok::<(), MakuError>(())
+    })?;
+
+    //
+    // Apply filter to the offscreen texture
+    //
+    let mut tex2 = three_d::Texture2D::new_empty::<[u8; 4]>(
+        &context,
+        args.width,
+        args.height,
+        three_d::Interpolation::Linear,
+        three_d::Interpolation::Linear,
+        None,
+        three_d::Wrapping::ClampToEdge,
+        three_d::Wrapping::ClampToEdge,
+    );
+    tex2.as_color_target(None).write(|| {
+        let program = three_d::Program::from_source(
+            &context,
+            include_str!("blackwhite.vert"),
+            include_str!("blackwhite.frag"),
+        )
+        .unwrap();
+        let positions = three_d::VertexBuffer::new_with_data(
+            &context,
+            &[
+                three_d::vec3(0.0, 0.0, 0.0),
+                three_d::vec3(0.0, 1.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(0.0, 0.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(1.0, 0.0, 0.0),
+            ],
+        );
+        program.use_vertex_attribute("position", &positions);
+        program.use_texture("u_texture", &tex);
+        program.draw_arrays(
+            three_d::RenderStates::default(),
+            viewport,
+            positions.vertex_count(),
+        );
+        Ok::<(), MakuError>(())
+    })?;
+
+    // Render the tex2 to screen
 
     let target =
         three_d::ColorTargetMultisample::<[u8; 4]>::new(&context, args.width, args.height, 4);
     target.clear(three_d::ClearState::default());
+    let model = three_d::Gm::new(
+        three_d::Rectangle::new(
+            &context,
+            three_d::vec2(0.0, 0.0),
+            three_d::degrees(0.0),
+            args.width as f32,
+            args.height as f32,
+        ),
+        three_d::ColorMaterial {
+            texture: Some(tex2.into()),
+            color: three_d::Srgba::WHITE,
+            ..Default::default()
+        },
+    );
     target.render(&camera, &model, &[]);
 
-    // Filter example
-    let program = three_d::Program::from_source(
-        &context,
-        include_str!("example.vert"),
-        include_str!("example.frag"),
-    )
-    .unwrap();
-    let positions = three_d::VertexBuffer::new_with_data(
-        &context,
-        &[
-            three_d::vec3(0.0, 0.0, 0.0), // bottom right
-            three_d::vec3(0.0, 1.0, 0.0), // bottom left
-            three_d::vec3(1.0, 1.0, 0.0), // top
-        ],
-    );
-    program.use_vertex_attribute("position", &positions);
-    program.draw_arrays(
-        three_d::RenderStates::default(),
-        viewport,
-        positions.vertex_count(),
-    );
+    // Output
 
     if let Some(output_path) = args.output {
         context.set_scissor(three_d::ScissorBox::new_at_origo(

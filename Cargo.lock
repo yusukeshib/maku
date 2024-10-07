@@ -1235,6 +1235,7 @@ dependencies = [
  "anyhow",
  "clap",
  "image 0.25.2",
+ "thiserror",
  "three-d",
  "three-d-asset",
  "tokio",
