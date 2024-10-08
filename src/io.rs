@@ -8,8 +8,11 @@ pub enum IoShader {
 }
 
 impl From<&IoShader> for String {
-    fn from(item: IoShader) -> String {
-        todo!()
+    fn from(item: &IoShader) -> String {
+        match item {
+            IoShader::Embed { embed } => embed.clone(),
+            IoShader::Path { path } => std::fs::read_to_string(path).unwrap(),
+        }
     }
 }
 

@@ -28,7 +28,7 @@ impl Maku {
             match filter {
                 io::IoFilter::Image { path } => {
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
-                    let image = three_d::Texture2D::new(&context, &loaded.deserialize("").unwrap());
+                    let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
                     filters.push(Filter::Image(three_d::Texture2DRef {
                         texture: image.into(),
                         transformation: three_d::Mat3::identity(),
@@ -37,7 +37,7 @@ impl Maku {
                 io::IoFilter::Shader { fragment, vertex } => {
                     let vert: String = vertex.into();
                     let frag: String = fragment.into();
-                    let program = three_d::Program::from_source(&context, &vert, &frag).unwrap();
+                    let program = three_d::Program::from_source(context, &vert, &frag).unwrap();
                     filters.push(Filter::Shader(program));
                 }
             }
@@ -56,6 +56,32 @@ impl Maku {
         let viewport = three_d::Viewport::new_at_origo(self.width, self.height);
         let camera = three_d::Camera::new_2d(viewport);
 
+        let copy_program = three_d::Program::from_source(
+            context,
+            include_str!("./copy.vert"),
+            include_str!("./copy.frag"),
+        )
+        .unwrap();
+        let copy_positions = three_d::VertexBuffer::new_with_data(
+            context,
+            &[
+                three_d::vec3(-1.0, -1.0, 0.0),
+                three_d::vec3(-1.0, 1.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(-1.0, -1.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(1.0, -1.0, 0.0),
+            ],
+        );
+        copy_program.use_uniform(
+            "u_resolution",
+            three_d::Vector2 {
+                x: self.width as f32,
+                y: self.height as f32,
+            },
+        );
+        copy_program.use_vertex_attribute("position", &copy_positions);
+
         for filter in self.filters.iter() {
             match filter {
                 Filter::Image(texture) => {
@@ -65,7 +91,7 @@ impl Maku {
 
                         let model = three_d::Gm::new(
                             three_d::Rectangle::new(
-                                &context,
+                                context,
                                 three_d::vec2(width * 0.5, height * 0.5),
                                 three_d::degrees(0.0),
                                 width,
@@ -84,7 +110,7 @@ impl Maku {
                 }
                 Filter::Shader(program) => {
                     let positions = three_d::VertexBuffer::new_with_data(
-                        &context,
+                        context,
                         &[
                             three_d::vec3(-1.0, -1.0, 0.0),
                             three_d::vec3(-1.0, 1.0, 0.0),
@@ -111,7 +137,16 @@ impl Maku {
                 }
             }
 
-            // TODO: Copy(Blit) output to input
+            // Copy output to input
+            self.input.as_color_target(None).write(|| {
+                copy_program.use_texture("u_texture", &self.output);
+                copy_program.draw_arrays(
+                    three_d::RenderStates::default(),
+                    viewport,
+                    copy_positions.vertex_count(),
+                );
+                Ok::<(), MakuError>(())
+            })?;
         }
 
         Ok(())

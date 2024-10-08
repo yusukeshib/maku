@@ -1,0 +1,15 @@
+{
+  "width": 320,
+  "height": 244,
+  "filters": [
+    {
+      "type": "Image",
+      "path": "./input.png"
+    },
+    {
+      "type": "Shader",
+      "fragment": { "path": "./blackwhite.frag" },
+      "vertex": { "path": "./blackwhite.vert" }
+    }
+  ]
+}
