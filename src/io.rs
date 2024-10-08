@@ -7,6 +7,12 @@ pub enum IoShader {
     Path { path: String },
 }
 
+impl From<&IoShader> for String {
+    fn from(item: IoShader) -> String {
+        todo!()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum IoFilter {
@@ -19,7 +25,9 @@ pub enum IoFilter {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct IoProject {
     pub filters: Vec<IoFilter>,
+    pub width: u32,
+    pub height: u32,
 }

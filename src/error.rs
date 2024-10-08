@@ -6,4 +6,6 @@ pub enum MakuError {
     Image(#[from] image::ImageError),
     #[error("Project loading error")]
     ProjectLoad(#[from] serde_json::Error),
+    #[error("Headless error")]
+    Headless(#[from] three_d::HeadlessError),
 }
