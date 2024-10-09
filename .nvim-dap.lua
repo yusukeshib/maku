@@ -12,17 +12,13 @@ dap.configurations.rust = {
     type = "lldb",
     request = "launch",
     program = function()
-      return vim.fn.getcwd() .. "/target/debug/demo"
+      return vim.fn.getcwd() .. "/target/debug/maku"
     end,
     args = {
       "--input",
-      "${workspaceFolder}/input.png",
+      "${workspaceFolder}/input.json",
       "--output",
       "${workspaceFolder}/output.png",
-      "--width",
-      "640",
-      "--height",
-      "640",
     },
     cwd = "${workspaceFolder}",
     stopOnEntry = false,
