@@ -8,9 +8,7 @@
     },
     {
       "type": "Shader",
-      "shader": "File",
-      "frag": "./blackwhite.frag",
-      "vert": "./blackwhite.vert"
+      "shader": "BlackWhite"
     }
   ]
 }

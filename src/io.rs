@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 pub enum IoShader {
     Embed { frag: String, vert: String },
     File { frag: String, vert: String },
-    // TODO: Presets
-    // BlackWhite,
+    // List presets here
+    BlackWhite,
 }
 
 pub fn resolve_resource_path(
@@ -30,7 +30,10 @@ pub fn load_shader(item: &IoShader, json_path: &std::path::Path) -> (String, Str
             std::fs::read_to_string(resolve_resource_path(vert, json_path)).unwrap(),
             std::fs::read_to_string(resolve_resource_path(frag, json_path)).unwrap(),
         ),
-        // _ => todo!(),
+        IoShader::BlackWhite => (
+            include_str!("./presets/blackwhite.vert").to_string(),
+            include_str!("./presets/blackwhite.frag").to_string(),
+        ),
     }
 }
 
