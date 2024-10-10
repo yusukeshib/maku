@@ -16,9 +16,9 @@ dap.configurations.rust = {
     end,
     args = {
       "--input",
-      "${workspaceFolder}/input.json",
+      "${workspaceFolder}/assets/input.json",
       "--output",
-      "${workspaceFolder}/output.png",
+      "Users/yusuke/Desktop/output.png",
     },
     cwd = "${workspaceFolder}",
     stopOnEntry = false,

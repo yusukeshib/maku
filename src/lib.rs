@@ -2,7 +2,7 @@ pub mod error;
 pub mod io;
 
 use error::MakuError;
-use io::IoProject;
+use io::{load_shader, resolve_resource_path, IoProject};
 use three_d::{Object, SquareMatrix};
 
 pub enum Filter {
@@ -91,20 +91,14 @@ impl Maku {
         json_path: std::path::PathBuf,
     ) -> Result<Maku, MakuError> {
         log::debug!("Load json: {:?}", json_path);
-        let json = std::fs::read_to_string(json_path)?;
+        let json = std::fs::read_to_string(json_path.clone())?;
         let project = serde_json::from_str::<IoProject>(&json).map_err(MakuError::from)?;
-        Maku::load_project(context, project).await
-    }
-
-    pub async fn load_project(
-        context: &three_d::Context,
-        project: IoProject,
-    ) -> Result<Maku, MakuError> {
         // Load resources
         let mut filters = vec![];
         for filter in project.filters.iter() {
             match filter {
                 io::IoFilter::Image { path } => {
+                    let path = resolve_resource_path(path, &json_path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
                     filters.push(Filter::Image(three_d::Texture2DRef {
@@ -113,8 +107,8 @@ impl Maku {
                     }));
                 }
                 io::IoFilter::Shader { fragment, vertex } => {
-                    let vert: String = vertex.into();
-                    let frag: String = fragment.into();
+                    let vert: String = load_shader(vertex, &json_path);
+                    let frag: String = load_shader(fragment, &json_path);
                     let program = three_d::Program::from_source(context, &vert, &frag).unwrap();
                     filters.push(Filter::Shader(program));
                 }
