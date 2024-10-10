@@ -1,0 +1,61 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'maku'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=maku"
+                ],
+                "filter": {
+                    "name": "maku",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'maku'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=maku",
+                    "--package=maku"
+                ],
+                "filter": {
+                    "name": "maku",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'maku'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=maku",
+                    "--package=maku"
+                ],
+                "filter": {
+                    "name": "maku",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
