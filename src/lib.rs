@@ -15,6 +15,9 @@ pub struct Maku {
     output: three_d::Texture2D,
     camera: three_d::Camera,
     filters: Vec<Filter>,
+    //
+    plane_positions: three_d::VertexBuffer,
+    copy_program: three_d::Program,
 }
 
 pub enum Target {
@@ -123,11 +126,44 @@ impl Maku {
 
         camera.disable_tone_and_color_mapping();
 
+        // For copy textures
+        let copy_program = three_d::Program::from_source(
+            context,
+            "
+                in vec4 position;
+                void main() {
+                  gl_Position = position;
+                }
+            ",
+            "
+                uniform sampler2D u_texture;
+                uniform vec2 u_resolution;
+                out vec4 outColor;
+                void main() {
+                  outColor = texture(u_texture, gl_FragCoord.xy / u_resolution);
+                }
+            ",
+        )
+        .unwrap();
+        let plane_positions = three_d::VertexBuffer::new_with_data(
+            context,
+            &[
+                three_d::vec3(-1.0, -1.0, 0.0),
+                three_d::vec3(-1.0, 1.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(-1.0, -1.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(1.0, -1.0, 0.0),
+            ],
+        );
+
         Ok(Maku {
             input: new_texture(context, project.width, project.height),
             output: new_texture(context, project.width, project.height),
             camera,
             filters,
+            plane_positions,
+            copy_program,
         })
     }
 
@@ -166,17 +202,6 @@ impl Maku {
                         model.render(&self.camera, &[]);
                     }
                     Filter::Shader(program) => {
-                        let positions = three_d::VertexBuffer::new_with_data(
-                            target.context(),
-                            &[
-                                three_d::vec3(-1.0, -1.0, 0.0),
-                                three_d::vec3(-1.0, 1.0, 0.0),
-                                three_d::vec3(1.0, 1.0, 0.0),
-                                three_d::vec3(-1.0, -1.0, 0.0),
-                                three_d::vec3(1.0, 1.0, 0.0),
-                                three_d::vec3(1.0, -1.0, 0.0),
-                            ],
-                        );
                         program.use_uniform(
                             "u_resolution",
                             three_d::Vector2 {
@@ -184,12 +209,12 @@ impl Maku {
                                 y: height,
                             },
                         );
-                        program.use_vertex_attribute("position", &positions);
+                        program.use_vertex_attribute("position", &self.plane_positions);
                         program.use_texture("u_texture", &self.input);
                         program.draw_arrays(
                             three_d::RenderStates::default(),
                             self.camera.viewport(),
-                            positions.vertex_count(),
+                            self.plane_positions.vertex_count(),
                         );
                     }
                 }
@@ -197,82 +222,45 @@ impl Maku {
             })?;
 
             // Copy output to input
-            // TODO: Don't call it in render()
-            {
-                let copy_program = three_d::Program::from_source(
-                    target.context(),
-                    include_str!("./copy.vert"),
-                    include_str!("./copy.frag"),
-                )
-                .unwrap();
-                let copy_positions = three_d::VertexBuffer::new_with_data(
-                    target.context(),
-                    &[
-                        three_d::vec3(-1.0, -1.0, 0.0),
-                        three_d::vec3(-1.0, 1.0, 0.0),
-                        three_d::vec3(1.0, 1.0, 0.0),
-                        three_d::vec3(-1.0, -1.0, 0.0),
-                        three_d::vec3(1.0, 1.0, 0.0),
-                        three_d::vec3(1.0, -1.0, 0.0),
-                    ],
-                );
-                copy_program.use_uniform(
+            self.input.as_color_target(None).write(|| {
+                self.copy_program.use_uniform(
                     "u_resolution",
                     three_d::Vector2 {
                         x: width,
                         y: height,
                     },
                 );
-                copy_program.use_vertex_attribute("position", &copy_positions);
-                self.input.as_color_target(None).write(|| {
-                    copy_program.use_texture("u_texture", &self.output);
-                    copy_program.draw_arrays(
-                        three_d::RenderStates::default(),
-                        self.camera.viewport(),
-                        copy_positions.vertex_count(),
-                    );
-                    Ok::<(), MakuError>(())
-                })?;
-            }
+                self.copy_program
+                    .use_vertex_attribute("position", &self.plane_positions);
+                self.copy_program.use_texture("u_texture", &self.output);
+                self.copy_program.draw_arrays(
+                    three_d::RenderStates::default(),
+                    self.camera.viewport(),
+                    self.plane_positions.vertex_count(),
+                );
+                Ok::<(), MakuError>(())
+            })?;
         }
 
-        // TODO: Use blit_to
-        {
-            let copy_program = three_d::Program::from_source(
-                target.context(),
-                include_str!("./copy.vert"),
-                include_str!("./copy.frag"),
-            )
-            .unwrap();
-            let copy_positions = three_d::VertexBuffer::new_with_data(
-                target.context(),
-                &[
-                    three_d::vec3(-1.0, -1.0, 0.0),
-                    three_d::vec3(-1.0, 1.0, 0.0),
-                    three_d::vec3(1.0, 1.0, 0.0),
-                    three_d::vec3(-1.0, -1.0, 0.0),
-                    three_d::vec3(1.0, 1.0, 0.0),
-                    three_d::vec3(1.0, -1.0, 0.0),
-                ],
-            );
-            copy_program.use_uniform(
+        // Copy output to the target
+        target.write(|| {
+            self.copy_program.use_uniform(
                 "u_resolution",
                 three_d::Vector2 {
                     x: width,
                     y: height,
                 },
             );
-            copy_program.use_vertex_attribute("position", &copy_positions);
-            copy_program.use_texture("u_texture", &self.output);
-            target.write(|| {
-                copy_program.draw_arrays(
-                    three_d::RenderStates::default(),
-                    self.camera.viewport(),
-                    copy_positions.vertex_count(),
-                );
-                Ok::<(), MakuError>(())
-            })?;
-        }
+            self.copy_program
+                .use_vertex_attribute("position", &self.plane_positions);
+            self.copy_program.use_texture("u_texture", &self.output);
+            self.copy_program.draw_arrays(
+                three_d::RenderStates::default(),
+                self.camera.viewport(),
+                self.plane_positions.vertex_count(),
+            );
+            Ok::<(), MakuError>(())
+        })?;
 
         Ok(())
     }
