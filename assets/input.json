@@ -8,8 +8,9 @@
     },
     {
       "type": "Shader",
-      "fragment": { "path": "./blackwhite.frag" },
-      "vertex": { "path": "./blackwhite.vert" }
+      "shader": "File",
+      "frag": "./blackwhite.frag",
+      "vert": "./blackwhite.vert"
     }
   ]
 }

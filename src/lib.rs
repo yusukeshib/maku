@@ -106,9 +106,8 @@ impl Maku {
                         transformation: three_d::Mat3::identity(),
                     }));
                 }
-                io::IoFilter::Shader { fragment, vertex } => {
-                    let vert: String = load_shader(vertex, &json_path);
-                    let frag: String = load_shader(fragment, &json_path);
+                io::IoFilter::Shader(shader) => {
+                    let (vert, frag) = load_shader(shader, &json_path);
                     let program = three_d::Program::from_source(context, &vert, &frag).unwrap();
                     filters.push(Filter::Shader(program));
                 }

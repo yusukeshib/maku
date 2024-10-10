@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(tag = "shader")]
 pub enum IoShader {
-    Embed { embed: String },
-    Path { path: String },
+    Embed { frag: String, vert: String },
+    File { frag: String, vert: String },
+    // TODO: Presets
+    // BlackWhite,
 }
 
 pub fn resolve_resource_path(
@@ -20,26 +22,23 @@ pub fn resolve_resource_path(
     resolved
 }
 
-pub fn load_shader(item: &IoShader, json_path: &std::path::Path) -> String {
+// Return (vert, frag)
+pub fn load_shader(item: &IoShader, json_path: &std::path::Path) -> (String, String) {
     match item {
-        IoShader::Embed { embed } => embed.clone(),
-        IoShader::Path { path } => {
-            let resolved_path = resolve_resource_path(path, json_path);
-            std::fs::read_to_string(resolved_path).unwrap()
-        }
+        IoShader::Embed { frag, vert } => (frag.clone(), vert.clone()),
+        IoShader::File { frag, vert } => (
+            std::fs::read_to_string(resolve_resource_path(vert, json_path)).unwrap(),
+            std::fs::read_to_string(resolve_resource_path(frag, json_path)).unwrap(),
+        ),
+        // _ => todo!(),
     }
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum IoFilter {
-    Image {
-        path: String,
-    },
-    Shader {
-        fragment: IoShader,
-        vertex: IoShader,
-    },
+    Image { path: String },
+    Shader(IoShader),
 }
 
 #[derive(Default, Serialize, Deserialize)]
