@@ -119,7 +119,9 @@ impl Maku {
         }
 
         let viewport = three_d::Viewport::new_at_origo(project.width, project.height);
-        let camera = three_d::Camera::new_2d(viewport);
+        let mut camera = three_d::Camera::new_2d(viewport);
+
+        camera.disable_tone_and_color_mapping();
 
         Ok(Maku {
             input: new_texture(context, project.width, project.height),

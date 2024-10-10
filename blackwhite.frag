@@ -5,6 +5,6 @@ out vec4 outColor;
 
 void main() {
   vec4 t = texture(u_texture, gl_FragCoord.xy / u_resolution);
-  float luminance = (t.r + t.g + t.b) / 3.0;
-  outColor = vec4(luminance, luminance, luminance, 1.0);
+  float luminance = (0.2126*t.r + 0.7152*t.g + 0.0722*t.b);
+  outColor = vec4(luminance, luminance, luminance, t.a);
 }
