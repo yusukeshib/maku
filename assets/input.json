@@ -7,9 +7,9 @@
       "path": "./input2.png"
     },
     {
-      "type": "Shader",
-      "shader": "GaussianBlur",
+      "type": "GaussianBlur",
       "radius": 12
-    }
+    },
+    { "type": "BlackWhite" }
   ]
 }

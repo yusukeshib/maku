@@ -54,9 +54,9 @@ impl Maku {
                         transformation: three_d::Mat3::identity(),
                     }));
                 }
-                io::IoFilter::Shader(shader) => {
+                _ => {
                     // Load shader filter
-                    let (vert, frag, uniforms) = load_shader(shader, &json_path);
+                    let (vert, frag, uniforms) = load_shader(filter, &json_path).unwrap();
                     let program = three_d::Program::from_source(context, &vert, &frag).unwrap();
                     filters.push(Filter::Shader(program, uniforms));
                 }
@@ -154,12 +154,16 @@ impl Maku {
                         }
                         Filter::Shader(program, uniforms) => {
                             // Apply shader filter
-                            program.use_uniform("u_resolution", u_resolution);
+                            if program.requires_uniform("u_resolution") {
+                                program.use_uniform("u_resolution", u_resolution);
+                            }
                             for (key, value) in uniforms {
-                                program.use_uniform(key, value);
+                                program.use_uniform_if_required(key, value);
                             }
                             program.use_vertex_attribute("position", &self.plane_positions);
-                            program.use_texture("u_texture", &self.input);
+                            if program.requires_uniform("u_texture") {
+                                program.use_texture("u_texture", &self.input);
+                            }
                             program.draw_arrays(
                                 three_d::RenderStates::default(),
                                 self.camera.viewport(),

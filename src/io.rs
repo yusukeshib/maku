@@ -1,15 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "shader")]
-pub enum IoShader {
-    Embed { frag: String, vert: String },
-    File { frag: String, vert: String },
-    // List presets here
-    BlackWhite,
-    GaussianBlur { radius: f32 },
-}
-
 pub fn resolve_resource_path(
     resource_path: &str,
     json_path: &std::path::Path,
@@ -25,26 +15,26 @@ pub fn resolve_resource_path(
 
 // Return (vert, frag)
 pub fn load_shader(
-    item: &IoShader,
+    item: &IoFilter,
     json_path: &std::path::Path,
-) -> (String, String, Vec<(String, f32)>) {
+) -> Option<(String, String, Vec<(String, f32)>)> {
     match item {
-        IoShader::Embed { frag, vert } => (frag.clone(), vert.clone(), vec![]),
-        IoShader::File { frag, vert } => (
+        IoFilter::Shader { frag, vert } => Some((
             std::fs::read_to_string(resolve_resource_path(vert, json_path)).unwrap(),
             std::fs::read_to_string(resolve_resource_path(frag, json_path)).unwrap(),
             vec![],
-        ),
-        IoShader::BlackWhite => (
+        )),
+        IoFilter::BlackWhite => Some((
             include_str!("./presets/blackwhite.vert").to_string(),
             include_str!("./presets/blackwhite.frag").to_string(),
             vec![],
-        ),
-        IoShader::GaussianBlur { radius } => (
+        )),
+        IoFilter::GaussianBlur { radius } => Some((
             include_str!("./presets/gaussian_blur.vert").to_string(),
             include_str!("./presets/gaussian_blur.frag").to_string(),
             vec![("u_radius".to_string(), *radius)],
-        ),
+        )),
+        IoFilter::Image { .. } => None,
     }
 }
 
@@ -52,7 +42,10 @@ pub fn load_shader(
 #[serde(tag = "type")]
 pub enum IoFilter {
     Image { path: String },
-    Shader(IoShader),
+    Shader { frag: String, vert: String },
+    // List presets here
+    BlackWhite,
+    GaussianBlur { radius: f32 },
 }
 
 #[derive(Default, Serialize, Deserialize)]
