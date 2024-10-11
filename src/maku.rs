@@ -34,7 +34,7 @@ async fn main() -> Result<(), MakuError> {
                 vsync: true,
                 depth_buffer: 0,
                 stencil_buffer: 0,
-                multisamples: 4,
+                multisamples: 0,
                 hardware_acceleration: three_d::HardwareAcceleration::Preferred,
             },
         )

@@ -125,68 +125,74 @@ impl Maku {
             x: width,
             y: height,
         };
-
-        target.clear(three_d::ClearState::default());
+        let clear_state = three_d::ClearState::color(0.0, 0.0, 0.0, 0.0);
 
         for filter in self.filters.iter() {
             // Apply each filter
-            self.output.as_color_target(None).write(|| {
-                match filter {
-                    Filter::Image(texture) => {
-                        // Render image filter
-                        let model = three_d::Gm::new(
-                            three_d::Rectangle::new(
-                                target.context(),
-                                three_d::vec2(width * 0.5, height * 0.5),
-                                three_d::degrees(0.0),
-                                width,
-                                height,
-                            ),
-                            three_d::ColorMaterial {
-                                texture: Some(texture.clone()),
-                                ..Default::default()
-                            },
-                        );
+            self.output
+                .as_color_target(None)
+                .clear(clear_state)
+                .write(|| {
+                    match filter {
+                        Filter::Image(texture) => {
+                            // Render image filter
+                            let model = three_d::Gm::new(
+                                three_d::Rectangle::new(
+                                    target.context(),
+                                    three_d::vec2(width * 0.5, height * 0.5),
+                                    three_d::degrees(0.0),
+                                    width,
+                                    height,
+                                ),
+                                three_d::ColorMaterial {
+                                    texture: Some(texture.clone()),
+                                    ..Default::default()
+                                },
+                            );
 
-                        model.render(&self.camera, &[]);
+                            model.render(&self.camera, &[]);
+                        }
+                        Filter::Shader(program) => {
+                            // Apply shader filter
+                            program.use_uniform(
+                                "u_resolution",
+                                three_d::Vector2 {
+                                    x: width,
+                                    y: height,
+                                },
+                            );
+                            program.use_vertex_attribute("position", &self.plane_positions);
+                            program.use_texture("u_texture", &self.input);
+                            program.draw_arrays(
+                                three_d::RenderStates::default(),
+                                self.camera.viewport(),
+                                self.plane_positions.vertex_count(),
+                            );
+                        }
                     }
-                    Filter::Shader(program) => {
-                        // Apply shader filter
-                        program.use_uniform(
-                            "u_resolution",
-                            three_d::Vector2 {
-                                x: width,
-                                y: height,
-                            },
-                        );
-                        program.use_vertex_attribute("position", &self.plane_positions);
-                        program.use_texture("u_texture", &self.input);
-                        program.draw_arrays(
-                            three_d::RenderStates::default(),
-                            self.camera.viewport(),
-                            self.plane_positions.vertex_count(),
-                        );
-                    }
-                }
-                Ok::<(), MakuError>(())
-            })?;
+                    Ok::<(), MakuError>(())
+                })?;
 
             // Copy output to input for next filter
-            self.input.as_color_target(None).write(|| {
-                self.copy_program.use_uniform("u_resolution", u_resolution);
-                self.copy_program
-                    .use_vertex_attribute("position", &self.plane_positions);
-                self.copy_program.use_texture("u_texture", &self.output);
-                self.copy_program.draw_arrays(
-                    three_d::RenderStates::default(),
-                    self.camera.viewport(),
-                    self.plane_positions.vertex_count(),
-                );
-                Ok::<(), MakuError>(())
-            })?;
+            self.input
+                .as_color_target(None)
+                .clear(clear_state)
+                .write(|| {
+                    self.copy_program.use_uniform("u_resolution", u_resolution);
+                    self.copy_program
+                        .use_vertex_attribute("position", &self.plane_positions);
+                    self.copy_program.use_texture("u_texture", &self.output);
+                    self.copy_program.draw_arrays(
+                        three_d::RenderStates::default(),
+                        self.camera.viewport(),
+                        self.plane_positions.vertex_count(),
+                    );
+                    Ok::<(), MakuError>(())
+                })?;
         }
 
         // Copy final output to the target
+        target.clear(clear_state);
         target.write(|| {
             self.copy_program.use_uniform("u_resolution", u_resolution);
             self.copy_program
