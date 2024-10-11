@@ -11,7 +11,7 @@ pub enum Filter {
     /// An image filter, containing a texture reference
     Image(three_d::Texture2DRef),
     /// A shader filter, containing a program
-    Shader(three_d::Program),
+    Shader(three_d::Program, Vec<(String, f32)>),
 }
 
 /// Main structure for the Maku image processing system
@@ -56,9 +56,9 @@ impl Maku {
                 }
                 io::IoFilter::Shader(shader) => {
                     // Load shader filter
-                    let (vert, frag) = load_shader(shader, &json_path);
+                    let (vert, frag, uniforms) = load_shader(shader, &json_path);
                     let program = three_d::Program::from_source(context, &vert, &frag).unwrap();
-                    filters.push(Filter::Shader(program));
+                    filters.push(Filter::Shader(program, uniforms));
                 }
             }
         }
@@ -152,15 +152,12 @@ impl Maku {
 
                             model.render(&self.camera, &[]);
                         }
-                        Filter::Shader(program) => {
+                        Filter::Shader(program, uniforms) => {
                             // Apply shader filter
-                            program.use_uniform(
-                                "u_resolution",
-                                three_d::Vector2 {
-                                    x: width,
-                                    y: height,
-                                },
-                            );
+                            program.use_uniform("u_resolution", u_resolution);
+                            for (key, value) in uniforms {
+                                program.use_uniform(key, value);
+                            }
                             program.use_vertex_attribute("position", &self.plane_positions);
                             program.use_texture("u_texture", &self.input);
                             program.draw_arrays(

@@ -4,11 +4,12 @@
   "filters": [
     {
       "type": "Image",
-      "path": "./input.png"
+      "path": "./input2.png"
     },
     {
       "type": "Shader",
-      "shader": "BlackWhite"
+      "shader": "GaussianBlur",
+      "radius": 12
     }
   ]
 }
