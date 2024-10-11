@@ -121,6 +121,10 @@ impl Maku {
     pub fn render(&mut self, target: &mut target::Target) -> Result<(), MakuError> {
         let width = self.width() as f32;
         let height = self.height() as f32;
+        let u_resolution = three_d::Vector2 {
+            x: width,
+            y: height,
+        };
 
         target.clear(three_d::ClearState::default());
 
@@ -169,13 +173,7 @@ impl Maku {
 
             // Copy output to input for next filter
             self.input.as_color_target(None).write(|| {
-                self.copy_program.use_uniform(
-                    "u_resolution",
-                    three_d::Vector2 {
-                        x: width,
-                        y: height,
-                    },
-                );
+                self.copy_program.use_uniform("u_resolution", u_resolution);
                 self.copy_program
                     .use_vertex_attribute("position", &self.plane_positions);
                 self.copy_program.use_texture("u_texture", &self.output);
@@ -190,13 +188,7 @@ impl Maku {
 
         // Copy final output to the target
         target.write(|| {
-            self.copy_program.use_uniform(
-                "u_resolution",
-                three_d::Vector2 {
-                    x: width,
-                    y: height,
-                },
-            );
+            self.copy_program.use_uniform("u_resolution", u_resolution);
             self.copy_program
                 .use_vertex_attribute("position", &self.plane_positions);
             self.copy_program.use_texture("u_texture", &self.output);
