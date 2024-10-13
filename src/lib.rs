@@ -4,7 +4,6 @@ pub mod target;
 
 use error::MakuError;
 use io::{load_shader, resolve_resource_path, IoProject};
-use three_d::{Object, SquareMatrix};
 
 /// Represents different types of filters that can be applied to an image
 pub enum Filter {
@@ -24,8 +23,6 @@ pub struct Maku {
     camera: three_d::Camera,
     /// List of filters to be applied
     filters: Vec<Filter>,
-    /// Vertex buffer for rendering a plane
-    plane_positions: three_d::VertexBuffer,
     /// Program for copying textures
     copy_program: three_d::Program,
 }
@@ -49,10 +46,7 @@ impl Maku {
                     let path = resolve_resource_path(path, &json_path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
-                    filters.push(Filter::Image(three_d::Texture2DRef {
-                        texture: image.into(),
-                        transformation: three_d::Mat3::identity(),
-                    }));
+                    filters.push(Filter::Image(three_d::Texture2DRef::from_texture(image)));
                 }
                 _ => {
                     // Load shader filter
@@ -87,24 +81,12 @@ impl Maku {
             ",
         )
         .unwrap();
-        let plane_positions = three_d::VertexBuffer::new_with_data(
-            context,
-            &[
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(-1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, -1.0, 0.0),
-            ],
-        );
 
         Ok(Maku {
             input: new_texture(context, project.width, project.height),
             output: new_texture(context, project.width, project.height),
             camera,
             filters,
-            plane_positions,
             copy_program,
         })
     }
@@ -125,7 +107,18 @@ impl Maku {
             x: width,
             y: height,
         };
-        let clear_state = three_d::ClearState::color(0.0, 0.0, 0.0, 0.0);
+        let clear_state = three_d::ClearState::default();
+        let plane_positions = three_d::VertexBuffer::new_with_data(
+            target.context(),
+            &[
+                three_d::vec3(-1.0, -1.0, 0.0),
+                three_d::vec3(-1.0, 1.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(-1.0, -1.0, 0.0),
+                three_d::vec3(1.0, 1.0, 0.0),
+                three_d::vec3(1.0, -1.0, 0.0),
+            ],
+        );
 
         for filter in self.filters.iter() {
             // Apply each filter
@@ -135,22 +128,15 @@ impl Maku {
                 .write(|| {
                     match filter {
                         Filter::Image(texture) => {
-                            // Render image filter
-                            let model = three_d::Gm::new(
-                                three_d::Rectangle::new(
-                                    target.context(),
-                                    three_d::vec2(width * 0.5, height * 0.5),
-                                    three_d::degrees(0.0),
-                                    width,
-                                    height,
-                                ),
-                                three_d::ColorMaterial {
-                                    texture: Some(texture.clone()),
-                                    ..Default::default()
-                                },
+                            self.copy_program.use_uniform("u_resolution", u_resolution);
+                            self.copy_program
+                                .use_vertex_attribute("position", &plane_positions);
+                            self.copy_program.use_texture("u_texture", texture);
+                            self.copy_program.draw_arrays(
+                                three_d::RenderStates::default(),
+                                self.camera.viewport(),
+                                plane_positions.vertex_count(),
                             );
-
-                            model.render(&self.camera, &[]);
                         }
                         Filter::Shader(program, uniforms) => {
                             // Apply shader filter
@@ -160,14 +146,14 @@ impl Maku {
                             for (key, value) in uniforms {
                                 program.use_uniform_if_required(key, value);
                             }
-                            program.use_vertex_attribute("position", &self.plane_positions);
+                            program.use_vertex_attribute("position", &plane_positions);
                             if program.requires_uniform("u_texture") {
                                 program.use_texture("u_texture", &self.input);
                             }
                             program.draw_arrays(
                                 three_d::RenderStates::default(),
                                 self.camera.viewport(),
-                                self.plane_positions.vertex_count(),
+                                plane_positions.vertex_count(),
                             );
                         }
                     }
@@ -181,12 +167,12 @@ impl Maku {
                 .write(|| {
                     self.copy_program.use_uniform("u_resolution", u_resolution);
                     self.copy_program
-                        .use_vertex_attribute("position", &self.plane_positions);
+                        .use_vertex_attribute("position", &plane_positions);
                     self.copy_program.use_texture("u_texture", &self.output);
                     self.copy_program.draw_arrays(
                         three_d::RenderStates::default(),
                         self.camera.viewport(),
-                        self.plane_positions.vertex_count(),
+                        plane_positions.vertex_count(),
                     );
                     Ok::<(), MakuError>(())
                 })?;
@@ -197,12 +183,12 @@ impl Maku {
         target.write(|| {
             self.copy_program.use_uniform("u_resolution", u_resolution);
             self.copy_program
-                .use_vertex_attribute("position", &self.plane_positions);
+                .use_vertex_attribute("position", &plane_positions);
             self.copy_program.use_texture("u_texture", &self.output);
             self.copy_program.draw_arrays(
                 three_d::RenderStates::default(),
                 self.camera.viewport(),
-                self.plane_positions.vertex_count(),
+                plane_positions.vertex_count(),
             );
             Ok::<(), MakuError>(())
         })?;
