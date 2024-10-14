@@ -38,14 +38,37 @@ pub fn load_shader(
     }
 }
 
+#[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum IoImageFit {
+    ///  This is default. The image is resized to fill the given dimension. If necessary, the image will be stretched or squished to fit
+    #[default]
+    Fill,
+    /// The image keeps its aspect ratio, but is resized to fit within the given dimension
+    Contain,
+    /// The image keeps its aspect ratio and fills the given dimension. The image will be clipped to fit
+    Cover,
+    /// The image is not resized
+    None,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum IoFilter {
-    Image { path: String },
-    Shader { frag: String, vert: String },
+    Image {
+        path: String,
+        #[serde(default)]
+        fit: IoImageFit,
+    },
+    Shader {
+        frag: String,
+        vert: String,
+    },
     // List presets here
     BlackWhite,
-    GaussianBlur { radius: f32 },
+    GaussianBlur {
+        radius: f32,
+    },
 }
 
 #[derive(Default, Serialize, Deserialize)]

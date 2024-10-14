@@ -1,15 +1,11 @@
 {
   "width": 800,
-  "height": 600,
+  "height": 800,
   "filters": [
     {
       "type": "Image",
-      "path": "./input2.png"
-    },
-    {
-      "type": "GaussianBlur",
-      "radius": 12
-    },
-    { "type": "BlackWhite" }
+      "path": "./input2.png",
+      "fit": "fill"
+    }
   ]
 }
