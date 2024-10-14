@@ -76,7 +76,6 @@ impl Maku {
             ",
             "
                 uniform sampler2D u_texture;
-                uniform vec2 u_fit;
                 uniform vec2 u_resolution;
                 out vec4 outColor;
                 void main() {
@@ -131,30 +130,47 @@ impl Maku {
                         Filter::Image(texture, fit) => {
                             let tex_width = texture.width() as f32;
                             let tex_height = texture.height() as f32;
-
-                            // TODO: Not working
-                            self.copy_program.use_uniform_if_required(
-                                "u_fit",
-                                match fit {
-                                    io::IoImageFit::Fill => three_d::Vector2::new(
-                                        width / tex_width,
-                                        height / tex_height,
-                                    ),
-                                    io::IoImageFit::Contain => three_d::Vector2::new(1.0, 1.0),
-                                    io::IoImageFit::Cover => three_d::Vector2::new(1.0, 1.0),
-                                    io::IoImageFit::None => three_d::Vector2::new(1.0, 1.0),
+                            let camera_viewport = self.camera.viewport();
+                            let viewport = match fit {
+                                io::IoImageFit::Fill => camera_viewport,
+                                io::IoImageFit::Contain => {
+                                    let scale = (width / tex_width).min(height / tex_height);
+                                    three_d::Viewport {
+                                        x: 0,
+                                        y: 0,
+                                        width: (tex_width * scale) as u32,
+                                        height: (tex_height * scale) as u32,
+                                    }
+                                }
+                                io::IoImageFit::Cover => {
+                                    let scale = (width / tex_width).max(height / tex_height);
+                                    three_d::Viewport {
+                                        x: 0,
+                                        y: 0,
+                                        width: (tex_width * scale) as u32,
+                                        height: (tex_height * scale) as u32,
+                                    }
+                                }
+                                io::IoImageFit::None => three_d::Viewport {
+                                    x: 0, // ((width - tex_width) / 2.0) as i32,
+                                    y: 0, // ((height - tex_height) / 2.0) as i32,
+                                    width: tex_width as u32,
+                                    height: tex_height as u32,
                                 },
-                            );
+                            };
                             self.copy_program.use_uniform(
                                 "u_resolution",
-                                three_d::Vector2::new(tex_width, tex_height),
+                                three_d::Vector2::new(
+                                    viewport.width as f32,
+                                    viewport.height as f32,
+                                ),
                             );
                             self.copy_program
                                 .use_vertex_attribute("position", &plane_positions);
                             self.copy_program.use_texture("u_texture", texture);
                             self.copy_program.draw_arrays(
                                 three_d::RenderStates::default(),
-                                self.camera.viewport(),
+                                viewport,
                                 plane_positions.vertex_count(),
                             );
                         }

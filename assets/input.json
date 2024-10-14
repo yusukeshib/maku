@@ -5,7 +5,7 @@
     {
       "type": "Image",
       "path": "./input2.png",
-      "fit": "fill"
+      "fit": "cover"
     }
   ]
 }
