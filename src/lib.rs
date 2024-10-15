@@ -47,38 +47,40 @@ impl Maku {
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
 
-                    let uv = match fit {
-                        io::IoImageFit::Fill => three_d::VertexBuffer::new_with_data(
-                            context,
-                            &[
-                                three_d::vec3(0.0, 0.0, 0.0),
-                                three_d::vec3(0.0, 1.0, 0.0),
-                                three_d::vec3(1.0, 1.0, 0.0),
-                                three_d::vec3(0.0, 0.0, 0.0),
-                                three_d::vec3(1.0, 1.0, 0.0),
-                                three_d::vec3(1.0, 0.0, 0.0),
-                            ],
-                        ),
-                        io::IoImageFit::Contain => todo!(),
-                        io::IoImageFit::Cover => todo!(),
-                        io::IoImageFit::None => {
-                            let sx = project.width as f32 / image.width() as f32;
-                            let sy = project.height as f32 / image.height() as f32;
-                            let ox = (1.0 - sx) / 2.0;
-                            let oy = (1.0 - sy) / 2.0;
-                            three_d::VertexBuffer::new_with_data(
-                                context,
-                                &[
-                                    three_d::vec3(ox, oy, 0.0),
-                                    three_d::vec3(ox, oy + sy, 0.0),
-                                    three_d::vec3(ox + sx, oy + sy, 0.0),
-                                    three_d::vec3(ox, oy, 0.0),
-                                    three_d::vec3(ox + sx, oy + sy, 0.0),
-                                    three_d::vec3(ox + sx, oy, 0.0),
-                                ],
-                            )
+                    let (sx, sy) = match fit {
+                        io::IoImageFit::Fill => (1.0, 1.0),
+                        io::IoImageFit::Contain => {
+                            let scale = (project.width as f32 / image.width() as f32)
+                                .min(project.height as f32 / image.height() as f32);
+                            let width = image.width() as f32 * scale;
+                            let height = image.height() as f32 * scale;
+                            (project.width as f32 / width, project.height as f32 / height)
                         }
+                        io::IoImageFit::Cover => {
+                            let scale = (project.width as f32 / image.width() as f32)
+                                .max(project.height as f32 / image.height() as f32);
+                            let width = image.width() as f32 * scale;
+                            let height = image.height() as f32 * scale;
+                            (project.width as f32 / width, project.height as f32 / height)
+                        }
+                        io::IoImageFit::None => (
+                            project.width as f32 / image.width() as f32,
+                            project.height as f32 / image.height() as f32,
+                        ),
                     };
+                    let ox = (1.0 - sx) / 2.0;
+                    let oy = (1.0 - sy) / 2.0;
+                    let uv = three_d::VertexBuffer::new_with_data(
+                        context,
+                        &[
+                            three_d::vec3(ox, oy, 0.0),
+                            three_d::vec3(ox, oy + sy, 0.0),
+                            three_d::vec3(ox + sx, oy + sy, 0.0),
+                            three_d::vec3(ox, oy, 0.0),
+                            three_d::vec3(ox + sx, oy + sy, 0.0),
+                            three_d::vec3(ox + sx, oy, 0.0),
+                        ],
+                    );
 
                     filters.push(Filter::Image(
                         three_d::Texture2DRef::from_texture(image),
