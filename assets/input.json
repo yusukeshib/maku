@@ -5,7 +5,8 @@
     {
       "type": "Image",
       "path": "./input2.png",
-      "fit": "contain"
-    }
+      "fit": "none"
+    },
+    { "type": "GaussianBlur", "radius":30 }
   ]
 }
