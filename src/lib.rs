@@ -3,7 +3,7 @@ pub mod io;
 pub mod target;
 
 use error::MakuError;
-use io::{load_shader, resolve_resource_path, IoProject};
+use io::{resolve_resource_path, IoProject};
 
 /// Represents different types of filters that can be applied to an image
 pub enum Filter {
@@ -89,9 +89,7 @@ impl Maku {
                 }
                 _ => {
                     // Load shader filter
-                    let (vert, frag, uniforms) = load_shader(filter, &json_path).unwrap();
-                    let program = three_d::Program::from_source(context, &vert, &frag).unwrap();
-                    filters.push(Filter::Shader(program, uniforms));
+                    filters.push(load_shader_filter(context, filter, &json_path));
                 }
             }
         }
@@ -293,6 +291,35 @@ impl Maku {
 
         Ok(())
     }
+}
+
+fn load_shader_filter(
+    context: &three_d::Context,
+    item: &io::IoFilter,
+    json_path: &std::path::Path,
+) -> Filter {
+    let (vert, frag, uniforms) = match item {
+        io::IoFilter::Shader { frag, vert } => (
+            std::fs::read_to_string(resolve_resource_path(vert, json_path)).unwrap(),
+            std::fs::read_to_string(resolve_resource_path(frag, json_path)).unwrap(),
+            vec![],
+        ),
+        io::IoFilter::BlackWhite => (
+            include_str!("./presets/blackwhite.vert").to_string(),
+            include_str!("./presets/blackwhite.frag").to_string(),
+            vec![],
+        ),
+        io::IoFilter::GaussianBlur { radius } => (
+            include_str!("./presets/gaussian_blur.vert").to_string(),
+            include_str!("./presets/gaussian_blur.frag").to_string(),
+            vec![("u_radius".to_string(), *radius)],
+        ),
+        io::IoFilter::Image { .. } => unreachable!(),
+    };
+    Filter::Shader(
+        three_d::Program::from_source(context, &vert, &frag).unwrap(),
+        uniforms,
+    )
 }
 
 /// Create a new empty texture with the specified dimensions

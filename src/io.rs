@@ -13,31 +13,6 @@ pub fn resolve_resource_path(
     resolved
 }
 
-// Return (vert, frag)
-pub fn load_shader(
-    item: &IoFilter,
-    json_path: &std::path::Path,
-) -> Option<(String, String, Vec<(String, f32)>)> {
-    match item {
-        IoFilter::Shader { frag, vert } => Some((
-            std::fs::read_to_string(resolve_resource_path(vert, json_path)).unwrap(),
-            std::fs::read_to_string(resolve_resource_path(frag, json_path)).unwrap(),
-            vec![],
-        )),
-        IoFilter::BlackWhite => Some((
-            include_str!("./presets/blackwhite.vert").to_string(),
-            include_str!("./presets/blackwhite.frag").to_string(),
-            vec![],
-        )),
-        IoFilter::GaussianBlur { radius } => Some((
-            include_str!("./presets/gaussian_blur.vert").to_string(),
-            include_str!("./presets/gaussian_blur.frag").to_string(),
-            vec![("u_radius".to_string(), *radius)],
-        )),
-        IoFilter::Image { .. } => None,
-    }
-}
-
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum IoImageFit {
