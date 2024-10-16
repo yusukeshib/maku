@@ -27,15 +27,21 @@ pub struct Composition {
     input: three_d::Texture2D,
     /// Output texture after processing
     output: three_d::Texture2D,
-    /// Camera for rendering
-    camera: three_d::Camera,
+    /// Width of the composition
+    width: u32,
+    /// Width of the composition
+    height: u32,
     /// List of filters to be applied
     filters: Vec<Filter>,
+
+    // TODO: These should be global
     /// Program for copying textures
     copy_program: three_d::Program,
     /// Program for blend textures
     blend_program: three_d::Program,
 }
+
+// TODO: Dedup many lines
 
 impl Composition {
     pub async fn load(
@@ -76,8 +82,8 @@ impl Composition {
                         context,
                         composition.width as f32,
                         composition.height as f32,
-                        c.width() as f32,
-                        c.height() as f32,
+                        c.width as f32,
+                        c.height as f32,
                         &io.fit,
                     );
 
@@ -89,11 +95,6 @@ impl Composition {
                 }
             }
         }
-
-        let viewport = three_d::Viewport::new_at_origo(composition.width, composition.height);
-        let mut camera = three_d::Camera::new_2d(viewport);
-
-        camera.disable_tone_and_color_mapping();
 
         // For copy textures
         let copy_program = three_d::Program::from_source(
@@ -159,26 +160,16 @@ impl Composition {
         Ok(Self {
             input: new_texture(context, composition.width, composition.height),
             output: new_texture(context, composition.width, composition.height),
-            camera,
+            width: composition.width,
+            height: composition.height,
             filters,
             copy_program,
             blend_program,
         })
     }
 
-    fn width(&self) -> u32 {
-        self.camera.viewport().width
-    }
-
-    fn height(&self) -> u32 {
-        self.camera.viewport().height
-    }
-
     /// Render the image with all applied filters
     pub fn render(&mut self, target: &mut target::Target) -> Result<(), MakuError> {
-        // TODO: Dedup
-        // TODO: Camera is unused!
-
         let clear_state = three_d::ClearState::default();
         let plane_positions = three_d::VertexBuffer::new_with_data(
             target.context(),
@@ -220,7 +211,7 @@ impl Composition {
             }
             self.copy_program.draw_arrays(
                 three_d::RenderStates::default(),
-                self.camera.viewport(),
+                three_d::Viewport::new_at_origo(self.width, self.height),
                 plane_positions.vertex_count(),
             );
             Ok::<(), MakuError>(())
@@ -254,7 +245,7 @@ impl Composition {
             ],
         );
 
-        let u_resolution = three_d::Vector2::new(self.width() as f32, self.height() as f32);
+        let u_resolution = three_d::Vector2::new(self.width as f32, self.height as f32);
 
         for filter in self.filters.iter_mut() {
             // Apply each filter
@@ -282,7 +273,7 @@ impl Composition {
                             }
                             self.blend_program.draw_arrays(
                                 three_d::RenderStates::default(),
-                                self.camera.viewport(),
+                                three_d::Viewport::new_at_origo(self.width, self.height),
                                 plane_positions.vertex_count(),
                             );
                             Ok::<(), MakuError>(())
@@ -313,7 +304,7 @@ impl Composition {
                             }
                             program.draw_arrays(
                                 three_d::RenderStates::default(),
-                                self.camera.viewport(),
+                                three_d::Viewport::new_at_origo(self.width, self.height),
                                 plane_positions.vertex_count(),
                             );
                             Ok::<(), MakuError>(())
@@ -345,7 +336,7 @@ impl Composition {
                             }
                             self.blend_program.draw_arrays(
                                 three_d::RenderStates::default(),
-                                self.camera.viewport(),
+                                three_d::Viewport::new_at_origo(self.width, self.height),
                                 plane_positions.vertex_count(),
                             );
                             Ok::<(), MakuError>(())
@@ -370,7 +361,7 @@ impl Composition {
                     }
                     self.copy_program.draw_arrays(
                         three_d::RenderStates::default(),
-                        self.camera.viewport(),
+                        three_d::Viewport::new_at_origo(self.width, self.height),
                         plane_positions.vertex_count(),
                     );
                     Ok::<(), MakuError>(())
@@ -386,11 +377,8 @@ impl Composition {
         context: &three_d::Context,
         output_path: std::path::PathBuf,
     ) -> Result<(), MakuError> {
-        let width = self.width() as f32;
-        let height = self.height() as f32;
-
         // Create a new texture for rendering
-        let texture = new_texture(context, self.width(), self.height());
+        let texture = new_texture(context, self.width, self.height);
         let mut target = target::Target::Pixels {
             context: context.clone(),
             texture,
@@ -404,8 +392,8 @@ impl Composition {
         image::save_buffer_with_format(
             output_path,
             &pixels,
-            width as u32,
-            height as u32,
+            self.width,
+            self.height,
             image::ColorType::Rgba8,
             image::ImageFormat::Png,
         )?;
