@@ -69,12 +69,11 @@ async fn main() -> Result<(), MakuError> {
                 winit::event::Event::RedrawRequested(_) => {
                     let frame_input = frame_input_generator.generate(&context);
                     let mut target = maku::target::Target::Screen {
-                        context: frame_input.context,
                         width: frame_input.viewport.width,
                         height: frame_input.viewport.height,
                     };
 
-                    maku.render(&mut target).unwrap();
+                    maku.render(&context, &mut target).unwrap();
                     context.swap_buffers().unwrap();
                     window.request_redraw();
                 }

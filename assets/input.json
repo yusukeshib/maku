@@ -5,8 +5,20 @@
     {
       "type": "Image",
       "path": "./input2.png",
-      "fit": "none"
+      "fit": "cover"
     },
-    { "type": "GaussianBlur", "radius":30 }
+    {
+      "type": "Composition",
+      "width": 400,
+      "height": 400,
+      "fit": "none",
+      "filters": [
+        {
+          "type": "Image",
+          "path": "./input3.png",
+          "fit": "contain"
+        }
+      ]
+    }
   ]
 }

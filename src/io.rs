@@ -1,13 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 pub fn resolve_resource_path(
+    parent_dir: &std::path::Path,
     resource_path: &str,
-    json_path: &std::path::Path,
 ) -> std::path::PathBuf {
-    let parent_dir = json_path
-        .parent()
-        .unwrap_or_else(|| std::path::Path::new("."))
-        .to_path_buf();
+    let parent_dir = parent_dir.to_path_buf();
     let resolved = parent_dir.join(resource_path);
     println!("resolve {} = {}", resource_path, resolved.to_str().unwrap());
     resolved
@@ -30,6 +27,7 @@ pub enum IoImageFit {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum IoFilter {
+    Composition(IoComposition),
     Image {
         path: String,
         #[serde(default)]
@@ -47,8 +45,10 @@ pub enum IoFilter {
 }
 
 #[derive(Default, Serialize, Deserialize)]
-pub struct IoProject {
+pub struct IoComposition {
     pub filters: Vec<IoFilter>,
     pub width: u32,
     pub height: u32,
+    #[serde(default)]
+    pub fit: IoImageFit,
 }
