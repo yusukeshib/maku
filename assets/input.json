@@ -11,6 +11,7 @@
       "type": "Composition",
       "width": 400,
       "height": 400,
+      "fit": "none",
       "filters": [
         {
           "type": "Image",
@@ -18,10 +19,6 @@
           "fit": "fill"
         }
       ]
-    },
-    {
-      "type": "GaussianBlur",
-      "radius":30
     }
   ]
 }

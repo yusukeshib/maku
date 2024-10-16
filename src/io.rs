@@ -50,5 +50,5 @@ pub struct IoComposition {
     pub width: u32,
     pub height: u32,
     #[serde(default)]
-    fit: IoImageFit,
+    pub fit: IoImageFit,
 }
