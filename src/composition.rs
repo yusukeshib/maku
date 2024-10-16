@@ -468,7 +468,7 @@ fn new_uv(
     let (sx, sy) = match fit {
         io::IoImageFit::Fill => (1.0, 1.0),
         io::IoImageFit::Contain => {
-            let scale = composition_width / image_width.min(composition_height / image_height);
+            let scale = (composition_width / image_width).min(composition_height / image_height);
             let width = image_width * scale;
             let height = image_height * scale;
             (composition_width / width, composition_height / height)

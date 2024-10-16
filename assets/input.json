@@ -5,7 +5,7 @@
     {
       "type": "Image",
       "path": "./input2.png",
-      "fit": "none"
+      "fit": "cover"
     },
     {
       "type": "Composition",
@@ -15,8 +15,8 @@
       "filters": [
         {
           "type": "Image",
-          "path": "./input.png",
-          "fit": "fill"
+          "path": "./input3.png",
+          "fit": "contain"
         }
       ]
     }
