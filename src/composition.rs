@@ -1,5 +1,6 @@
 use crate::error::MakuError;
 use crate::io;
+use crate::programs;
 use crate::target;
 
 /// Represents different types of filters that can be applied to an image
@@ -33,15 +34,7 @@ pub struct Composition {
     height: u32,
     /// List of filters to be applied
     filters: Vec<Filter>,
-
-    // TODO: These should be global
-    /// Program for copying textures
-    copy_program: three_d::Program,
-    /// Program for blend textures
-    blend_program: three_d::Program,
 }
-
-// TODO: Dedup many lines
 
 impl Composition {
     pub async fn load(
@@ -96,131 +89,41 @@ impl Composition {
             }
         }
 
-        // For copy textures
-        let copy_program = three_d::Program::from_source(
-            context,
-            "
-                in vec4 a_position;
-                in vec4 a_uv;
-                out vec2 v_uv;
-                void main() {
-                  gl_Position = a_position;
-                  v_uv = a_uv.xy;
-                }
-            ",
-            "
-                uniform sampler2D u_texture;
-                in vec2 v_uv;
-                out vec4 outColor;
-                void main() {
-                  if(0.0 <= v_uv.x && v_uv.x <= 1.0 && 0.0 <= v_uv.y && v_uv.y <= 1.0) {
-                    outColor = texture(u_texture, v_uv);
-                  } else {
-                    outColor = vec4(0.0);
-                  }
-                }
-            ",
-        )
-        .unwrap();
-
-        // For blend textures
-        let blend_program = three_d::Program::from_source(
-            context,
-            "
-                in vec4 a_position;
-                in vec4 a_uv1;
-                in vec4 a_uv2;
-                out vec2 v_uv1;
-                out vec2 v_uv2;
-                void main() {
-                  gl_Position = a_position;
-                  v_uv1 = a_uv1.xy;
-                  v_uv2 = a_uv2.xy;
-                }
-            ",
-            "
-                uniform sampler2D u_texture1;
-                uniform sampler2D u_texture2;
-                in vec2 v_uv1;
-                in vec2 v_uv2;
-                out vec4 outColor;
-                void main() {
-                  if(0.0 <= v_uv2.x && v_uv2.x <= 1.0 && 0.0 <= v_uv2.y && v_uv2.y <= 1.0) {
-                    vec4 c1 = texture(u_texture1, v_uv1);
-                    vec4 c2 = texture(u_texture2, v_uv2);
-                    outColor = c2 * c2.a + c1 * (1.0-c2.a);
-                  } else {
-                    outColor = texture(u_texture1, v_uv1);
-                  }
-                }
-            ",
-        )
-        .unwrap();
-
         Ok(Self {
             input: new_texture(context, composition.width, composition.height),
             output: new_texture(context, composition.width, composition.height),
             width: composition.width,
             height: composition.height,
             filters,
-            copy_program,
-            blend_program,
         })
     }
 
     /// Render the image with all applied filters
-    pub fn render(&mut self, target: &mut target::Target) -> Result<(), MakuError> {
+    pub fn render(
+        &mut self,
+        context: &three_d::Context,
+        target: &mut target::Target,
+        programs: &programs::Programs,
+    ) -> Result<(), MakuError> {
         let clear_state = three_d::ClearState::default();
-        let plane_positions = three_d::VertexBuffer::new_with_data(
-            target.context(),
-            &[
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(-1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, -1.0, 0.0),
-            ],
-        );
-        let plane_uv = three_d::VertexBuffer::new_with_data(
-            target.context(),
-            &[
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(0.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 0.0, 0.0),
-            ],
-        );
 
-        self.apply_filters(target.context())?;
+        self.apply_filters(context, programs)?;
 
         // Copy final output to the target
-        target.clear(clear_state);
-        target.write(|| {
-            if self.copy_program.requires_attribute("a_uv") {
-                self.copy_program.use_vertex_attribute("a_uv", &plane_uv);
-            }
-            if self.copy_program.requires_attribute("a_position") {
-                self.copy_program
-                    .use_vertex_attribute("a_position", &plane_positions);
-            }
-            if self.copy_program.requires_uniform("u_texture") {
-                self.copy_program.use_texture("u_texture", &self.output);
-            }
-            self.copy_program.draw_arrays(
-                three_d::RenderStates::default(),
-                three_d::Viewport::new_at_origo(self.width, self.height),
-                plane_positions.vertex_count(),
-            );
+        target.clear(context, clear_state);
+        target.write(context, || {
+            programs.copy(context, &self.output);
             Ok::<(), MakuError>(())
         })?;
 
         Ok(())
     }
 
-    fn apply_filters(&mut self, context: &three_d::Context) -> Result<(), MakuError> {
+    fn apply_filters(
+        &mut self,
+        context: &three_d::Context,
+        programs: &programs::Programs,
+    ) -> Result<(), MakuError> {
         let clear_state = three_d::ClearState::default();
         let plane_positions = three_d::VertexBuffer::new_with_data(
             context,
@@ -255,27 +158,7 @@ impl Composition {
                         .as_color_target(None)
                         .clear(clear_state)
                         .write(|| {
-                            if self.blend_program.requires_attribute("a_uv1") {
-                                self.blend_program.use_vertex_attribute("a_uv1", &plane_uv);
-                            }
-                            if self.blend_program.requires_attribute("a_uv2") {
-                                self.blend_program.use_vertex_attribute("a_uv2", uv);
-                            }
-                            if self.blend_program.requires_attribute("a_position") {
-                                self.blend_program
-                                    .use_vertex_attribute("a_position", &plane_positions);
-                            }
-                            if self.blend_program.requires_uniform("u_texture1") {
-                                self.blend_program.use_texture("u_texture1", &self.input);
-                            }
-                            if self.blend_program.requires_uniform("u_texture2") {
-                                self.blend_program.use_texture("u_texture2", texture);
-                            }
-                            self.blend_program.draw_arrays(
-                                three_d::RenderStates::default(),
-                                three_d::Viewport::new_at_origo(self.width, self.height),
-                                plane_positions.vertex_count(),
-                            );
+                            programs.blend(context, &self.input, texture, uv);
                             Ok::<(), MakuError>(())
                         })?;
                 }
@@ -311,34 +194,13 @@ impl Composition {
                         })?;
                 }
                 Filter::Composition { composition, uv } => {
-                    composition.apply_filters(context)?;
+                    composition.apply_filters(context, programs)?;
 
                     self.output
                         .as_color_target(None)
                         .clear(clear_state)
                         .write(|| {
-                            if self.blend_program.requires_attribute("a_uv1") {
-                                self.blend_program.use_vertex_attribute("a_uv1", &plane_uv);
-                            }
-                            if self.blend_program.requires_attribute("a_uv2") {
-                                self.blend_program.use_vertex_attribute("a_uv2", uv);
-                            }
-                            if self.blend_program.requires_attribute("a_position") {
-                                self.blend_program
-                                    .use_vertex_attribute("a_position", &plane_positions);
-                            }
-                            if self.blend_program.requires_uniform("u_texture1") {
-                                self.blend_program.use_texture("u_texture1", &self.input);
-                            }
-                            if self.blend_program.requires_uniform("u_texture2") {
-                                self.blend_program
-                                    .use_texture("u_texture2", &composition.output);
-                            }
-                            self.blend_program.draw_arrays(
-                                three_d::RenderStates::default(),
-                                three_d::Viewport::new_at_origo(self.width, self.height),
-                                plane_positions.vertex_count(),
-                            );
+                            programs.blend(context, &self.input, &composition.output, uv);
                             Ok::<(), MakuError>(())
                         })?;
                 }
@@ -349,21 +211,7 @@ impl Composition {
                 .as_color_target(None)
                 .clear(clear_state)
                 .write(|| {
-                    if self.copy_program.requires_attribute("a_uv") {
-                        self.copy_program.use_vertex_attribute("a_uv", &plane_uv);
-                    }
-                    if self.copy_program.requires_attribute("a_position") {
-                        self.copy_program
-                            .use_vertex_attribute("a_position", &plane_positions);
-                    }
-                    if self.copy_program.requires_uniform("u_texture") {
-                        self.copy_program.use_texture("u_texture", &self.output);
-                    }
-                    self.copy_program.draw_arrays(
-                        three_d::RenderStates::default(),
-                        three_d::Viewport::new_at_origo(self.width, self.height),
-                        plane_positions.vertex_count(),
-                    );
+                    programs.copy(context, &self.output);
                     Ok::<(), MakuError>(())
                 })?;
         }
@@ -375,17 +223,15 @@ impl Composition {
     pub fn render_to_file(
         &mut self,
         context: &three_d::Context,
+        programs: &programs::Programs,
         output_path: std::path::PathBuf,
     ) -> Result<(), MakuError> {
         // Create a new texture for rendering
         let texture = new_texture(context, self.width, self.height);
-        let mut target = target::Target::Pixels {
-            context: context.clone(),
-            texture,
-        };
+        let mut target = target::Target::Pixels { texture };
 
         // Render to the target
-        self.render(&mut target)?;
+        self.render(context, &mut target, programs)?;
 
         // Save the rendered image to a file
         let pixels = target.pixels();

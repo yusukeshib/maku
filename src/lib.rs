@@ -1,6 +1,7 @@
 pub mod composition;
 pub mod error;
 pub mod io;
+pub mod programs;
 pub mod target;
 
 use error::MakuError;
@@ -9,6 +10,7 @@ use io::IoComposition;
 /// Main structure for the Maku image processing system
 pub struct Maku {
     root: composition::Composition,
+    programs: programs::Programs,
 }
 
 impl Maku {
@@ -24,11 +26,19 @@ impl Maku {
             .parent()
             .unwrap_or_else(|| std::path::Path::new("."));
         let root = composition::Composition::load(context, &composition, parent_dir).await?;
-        Ok(Self { root })
+
+        Ok(Self {
+            root,
+            programs: programs::Programs::new(context),
+        })
     }
 
-    pub fn render(&mut self, target: &mut target::Target) -> Result<(), MakuError> {
-        self.root.render(target)
+    pub fn render(
+        &mut self,
+        context: &three_d::Context,
+        target: &mut target::Target,
+    ) -> Result<(), MakuError> {
+        self.root.render(context, target, &self.programs)
     }
 
     pub fn render_to_file(
@@ -36,6 +46,7 @@ impl Maku {
         context: &three_d::Context,
         output_path: std::path::PathBuf,
     ) -> Result<(), MakuError> {
-        self.root.render_to_file(context, output_path)
+        self.root
+            .render_to_file(context, &self.programs, output_path)
     }
 }

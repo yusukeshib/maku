@@ -1,29 +1,12 @@
 pub enum Target {
-    Screen {
-        context: three_d::Context,
-        width: u32,
-        height: u32,
-    },
-    Pixels {
-        context: three_d::Context,
-        texture: three_d::Texture2D,
-    },
+    Screen { width: u32, height: u32 },
+    Pixels { texture: three_d::Texture2D },
 }
 
 impl Target {
-    pub fn context(&self) -> &three_d::Context {
+    pub fn clear(&mut self, context: &three_d::Context, clear_state: three_d::ClearState) -> &Self {
         match self {
-            Target::Screen { context, .. } => context,
-            Target::Pixels { context, .. } => context,
-        }
-    }
-    pub fn clear(&mut self, clear_state: three_d::ClearState) -> &Self {
-        match self {
-            Target::Screen {
-                context,
-                width,
-                height,
-            } => {
+            Target::Screen { width, height } => {
                 three_d::RenderTarget::screen(context, *width, *height).clear(clear_state);
             }
             Target::Pixels { texture, .. } => {
@@ -34,14 +17,11 @@ impl Target {
     }
     pub fn write<E: std::error::Error>(
         &mut self,
+        context: &three_d::Context,
         render: impl FnOnce() -> Result<(), E>,
     ) -> Result<(), E> {
         match self {
-            Target::Screen {
-                context,
-                width,
-                height,
-            } => {
+            Target::Screen { width, height } => {
                 three_d::RenderTarget::screen(context, *width, *height).write(render)?;
             }
             Target::Pixels { texture, .. } => {
