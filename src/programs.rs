@@ -22,7 +22,7 @@ impl Programs {
                 in vec2 v_uv;
                 out vec4 outColor;
                 void main() {
-                  if(0.0 <= v_uv.x && v_uv.x <= 1.0 && 0.0 <= v_uv.y && v_uv.y <= 1.0) {
+                  if(0.0 <= v_uv.x && v_uv.x <= 1.0 && 0.0 < v_uv.y && v_uv.y < 1.0) {
                     outColor = texture(u_texture, v_uv);
                   } else {
                     outColor = vec4(0.0);
@@ -54,10 +54,10 @@ impl Programs {
                 in vec2 v_uv2;
                 out vec4 outColor;
                 void main() {
-                  if(0.0 <= v_uv2.x && v_uv2.x <= 1.0 && 0.0 <= v_uv2.y && v_uv2.y <= 1.0) {
+                  if(0.0 <= v_uv2.x && v_uv2.x < 1.0 && 0.0 <= v_uv2.y && v_uv2.y < 1.0) {
                     vec4 c1 = texture(u_texture1, v_uv1);
                     vec4 c2 = texture(u_texture2, v_uv2);
-                    outColor = c2 * c2.a + c1 * (1.0-c2.a);
+                    outColor = c2 * c2.a + c1 * (1.0 - c2.a);
                   } else {
                     outColor = texture(u_texture1, v_uv1);
                   }
