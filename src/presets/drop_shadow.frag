@@ -2,8 +2,7 @@
 uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 uniform float u_radius;
-uniform float u_x;
-uniform float u_y;
+uniform vec2 u_offset;
 
 out vec4 outColor;
 
@@ -15,7 +14,7 @@ void main() {
   vec2 pos0 = gl_FragCoord.xy / u_resolution;
   vec2 pos = (pos0 * 2.0) - 1.0;
   vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-  vec2 offset = vec2(u_x / u_resolution.x, -u_y / u_resolution.y);
+  vec2 offset = u_offset / u_resolution;
 
   if (u_radius == 0) {
     color += texture(u_texture, pos0 - offset);

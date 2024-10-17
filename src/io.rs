@@ -46,6 +46,7 @@ pub enum IoFilter {
         radius: f32,
         x: f32,
         y: f32,
+        // TODO: color
     },
 }
 

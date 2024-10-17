@@ -18,8 +18,39 @@ pub enum Filter {
     /// A shader filter, containing a program
     Shader {
         program: three_d::Program,
-        uniforms: Vec<(String, f32)>,
+        uniforms: Vec<(String, UniformValue)>,
     },
+}
+
+enum UniformValue {
+    Float(f32),
+    Vector2(three_d::Vector2<f32>),
+    Vector3(three_d::Vector3<f32>),
+    Vector4(three_d::Vector4<f32>),
+}
+
+impl From<f32> for UniformValue {
+    fn from(value: f32) -> Self {
+        Self::Float(value)
+    }
+}
+
+impl From<(f32, f32)> for UniformValue {
+    fn from(value: (f32, f32)) -> Self {
+        Self::Vector2(three_d::Vector2::new(value.0, value.1))
+    }
+}
+
+impl From<(f32, f32, f32)> for UniformValue {
+    fn from(value: (f32, f32, f32)) -> Self {
+        Self::Vector3(three_d::Vector3::new(value.0, value.1, value.2))
+    }
+}
+
+impl From<(f32, f32, f32, f32)> for UniformValue {
+    fn from(value: (f32, f32, f32, f32)) -> Self {
+        Self::Vector4(three_d::Vector4::new(value.0, value.1, value.2, value.3))
+    }
 }
 
 // Composition
@@ -267,15 +298,14 @@ fn load_shader_filter(
         io::IoFilter::GaussianBlur { radius } => (
             include_str!("./presets/gaussian_blur.vert").to_string(),
             include_str!("./presets/gaussian_blur.frag").to_string(),
-            vec![("u_radius".to_string(), *radius)],
+            vec![("u_radius".to_string(), (*radius).into())],
         ),
         io::IoFilter::DropShadow { radius, x, y } => (
             include_str!("./presets/drop_shadow.vert").to_string(),
             include_str!("./presets/drop_shadow.frag").to_string(),
             vec![
-                ("u_radius".to_string(), *radius),
-                ("u_x".to_string(), *x),
-                ("u_y".to_string(), *y),
+                ("u_radius".to_string(), (*radius).into()),
+                ("u_offset".to_string(), (*x, *y).into()),
             ],
         ),
         io::IoFilter::Composition(..) | io::IoFilter::Image { .. } => unreachable!(),
