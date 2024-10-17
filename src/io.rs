@@ -42,6 +42,11 @@ pub enum IoFilter {
     GaussianBlur {
         radius: f32,
     },
+    DropShadow {
+        radius: f32,
+        x: f32,
+        y: f32,
+    },
 }
 
 #[derive(Default, Serialize, Deserialize)]
