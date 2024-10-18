@@ -22,11 +22,22 @@ pub enum Filter {
     },
 }
 
-enum UniformValue {
+pub enum UniformValue {
     Float(f32),
     Vector2(three_d::Vector2<f32>),
     Vector3(three_d::Vector3<f32>),
     Vector4(three_d::Vector4<f32>),
+}
+
+impl UniformValue {
+    pub fn apply(&self, program: &three_d::Program, name: &str) {
+        match self {
+            UniformValue::Float(v) => program.use_uniform(name, v),
+            UniformValue::Vector2(v) => program.use_uniform(name, v),
+            UniformValue::Vector3(v) => program.use_uniform(name, v),
+            UniformValue::Vector4(v) => program.use_uniform(name, v),
+        };
+    }
 }
 
 impl From<f32> for UniformValue {
@@ -204,7 +215,7 @@ impl Composition {
                             }
                             for (key, value) in uniforms.iter() {
                                 if program.requires_uniform(key) {
-                                    program.use_uniform(key, value);
+                                    value.apply(program, key);
                                 }
                             }
                             if program.requires_attribute("a_uv") {
