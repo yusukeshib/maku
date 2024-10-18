@@ -14,7 +14,7 @@ void main() {
     vec2 pos0 = gl_FragCoord.xy / u_resolution;
     vec2 pos = (pos0 * 2.0) - 1.0;
     vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset = u_offset / u_resolution;
+    vec2 offset = u_offset * vec2(1.0, -1.0) / u_resolution;
 
     if (u_radius == 0) {
         color += texture(u_texture, pos0 - offset);

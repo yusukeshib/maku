@@ -311,12 +311,12 @@ fn load_shader_filter(
             include_str!("./presets/gaussian_blur.frag").to_string(),
             vec![("u_radius".to_string(), (*radius).into())],
         ),
-        io::IoFilter::DropShadow { radius, x, y } => (
+        io::IoFilter::DropShadow { radius, offset } => (
             include_str!("./presets/drop_shadow.vert").to_string(),
             include_str!("./presets/drop_shadow.frag").to_string(),
             vec![
                 ("u_radius".to_string(), (*radius).into()),
-                ("u_offset".to_string(), (*x, *y).into()),
+                ("u_offset".to_string(), (offset[0], offset[1]).into()),
             ],
         ),
         io::IoFilter::Composition(..) | io::IoFilter::Image { .. } => unreachable!(),
