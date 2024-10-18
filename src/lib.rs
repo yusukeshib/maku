@@ -3,6 +3,7 @@ pub mod error;
 pub mod io;
 pub mod programs;
 pub mod target;
+pub mod value;
 
 use error::MakuError;
 use io::IoComposition;

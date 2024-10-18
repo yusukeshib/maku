@@ -2,6 +2,7 @@ use crate::error::MakuError;
 use crate::io;
 use crate::programs;
 use crate::target;
+use crate::value;
 
 /// Represents different types of filters that can be applied to an image
 pub enum Filter {
@@ -18,7 +19,7 @@ pub enum Filter {
     /// A shader filter, containing a program
     Shader {
         program: three_d::Program,
-        uniforms: Vec<(String, f32)>,
+        uniforms: Vec<(String, value::UniformValue)>,
     },
 }
 
@@ -173,7 +174,7 @@ impl Composition {
                             }
                             for (key, value) in uniforms.iter() {
                                 if program.requires_uniform(key) {
-                                    program.use_uniform(key, value);
+                                    value.apply(program, key);
                                 }
                             }
                             if program.requires_attribute("a_uv") {
@@ -267,15 +268,22 @@ fn load_shader_filter(
         io::IoFilter::GaussianBlur { radius } => (
             include_str!("./presets/gaussian_blur.vert").to_string(),
             include_str!("./presets/gaussian_blur.frag").to_string(),
-            vec![("u_radius".to_string(), *radius)],
+            vec![("u_radius".to_string(), (*radius).into())],
         ),
-        io::IoFilter::DropShadow { radius, x, y } => (
+        io::IoFilter::DropShadow {
+            radius,
+            offset,
+            color,
+        } => (
             include_str!("./presets/drop_shadow.vert").to_string(),
             include_str!("./presets/drop_shadow.frag").to_string(),
             vec![
-                ("u_radius".to_string(), *radius),
-                ("u_x".to_string(), *x),
-                ("u_y".to_string(), *y),
+                ("u_radius".to_string(), (*radius).into()),
+                ("u_offset".to_string(), (offset[0], offset[1]).into()),
+                (
+                    "u_color".to_string(),
+                    (color[0], color[1], color[2], color[3]).into(),
+                ),
             ],
         ),
         io::IoFilter::Composition(..) | io::IoFilter::Image { .. } => unreachable!(),
