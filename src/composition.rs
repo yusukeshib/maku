@@ -280,10 +280,7 @@ fn load_shader_filter(
             vec![
                 ("u_radius".to_string(), (*radius).into()),
                 ("u_offset".to_string(), (offset[0], offset[1]).into()),
-                (
-                    "u_color".to_string(),
-                    (color[0], color[1], color[2], color[3]).into(),
-                ),
+                ("u_color".to_string(), (*color).into()),
             ],
         ),
         io::IoFilter::Composition(..) | io::IoFilter::Image { .. } => unreachable!(),

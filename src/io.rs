@@ -56,4 +56,19 @@ pub struct IoComposition {
     pub height: u32,
     #[serde(default)]
     pub fit: IoImageFit,
+    #[serde(default)]
+    pub matrix: IoMatrix,
+}
+
+/// Affine transform matrix
+/// [ a, b,
+///   c, d,
+///   tx, ty]
+#[derive(Serialize, Deserialize)]
+pub struct IoMatrix([f32; 6]);
+
+impl Default for IoMatrix {
+    fn default() -> Self {
+        Self([1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+    }
 }
