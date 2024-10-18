@@ -10,11 +10,13 @@ pub enum Filter {
     Composition {
         composition: Composition,
         uv: three_d::VertexBuffer,
+        matrix: three_d::Mat3,
     },
     /// An image filter, containing a texture reference
     Image {
         texture: three_d::Texture2DRef,
         uv: three_d::VertexBuffer,
+        matrix: three_d::Mat3,
     },
     /// A shader filter, containing a program
     Shader {
@@ -48,7 +50,7 @@ impl Composition {
         let mut filters = vec![];
         for filter in composition.filters.iter() {
             match filter {
-                io::IoFilter::Image { path, fit } => {
+                io::IoFilter::Image { path, fit, matrix } => {
                     // Load image filter
 
                     let path = io::resolve_resource_path(parent_dir, path);
@@ -67,6 +69,7 @@ impl Composition {
                     filters.push(Filter::Image {
                         texture: three_d::Texture2DRef::from_texture(image),
                         uv,
+                        matrix: matrix.clone().into(),
                     });
                 }
                 io::IoFilter::Composition(io) => {
@@ -81,7 +84,11 @@ impl Composition {
                         &io.fit,
                     );
 
-                    filters.push(Filter::Composition { composition: c, uv });
+                    filters.push(Filter::Composition {
+                        composition: c,
+                        uv,
+                        matrix: io.matrix.clone().into(),
+                    });
                 }
                 _ => {
                     // Load shader filter
@@ -154,12 +161,16 @@ impl Composition {
         for filter in self.filters.iter_mut() {
             // Apply each filter
             match filter {
-                Filter::Image { texture, uv } => {
+                Filter::Image {
+                    texture,
+                    uv,
+                    matrix,
+                } => {
                     self.output
                         .as_color_target(None)
                         .clear(clear_state)
                         .write(|| {
-                            programs.blend(context, &self.input, texture, uv);
+                            programs.blend(context, &self.input, texture, uv, matrix);
                             Ok::<(), MakuError>(())
                         })?;
                 }
@@ -194,14 +205,18 @@ impl Composition {
                             Ok::<(), MakuError>(())
                         })?;
                 }
-                Filter::Composition { composition, uv } => {
+                Filter::Composition {
+                    composition,
+                    uv,
+                    matrix,
+                } => {
                     composition.apply_filters(context, programs)?;
 
                     self.output
                         .as_color_target(None)
                         .clear(clear_state)
                         .write(|| {
-                            programs.blend(context, &self.input, &composition.output, uv);
+                            programs.blend(context, &self.input, &composition.output, uv, matrix);
                             Ok::<(), MakuError>(())
                         })?;
                 }

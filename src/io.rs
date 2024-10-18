@@ -32,6 +32,8 @@ pub enum IoFilter {
         path: String,
         #[serde(default)]
         fit: IoImageFit,
+        #[serde(default)]
+        matrix: IoMatrix,
     },
     Shader {
         frag: String,
@@ -64,11 +66,24 @@ pub struct IoComposition {
 /// [ a, b,
 ///   c, d,
 ///   tx, ty]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct IoMatrix([f32; 6]);
+
+impl IoMatrix {
+    pub fn new(value: [f32; 6]) -> Self {
+        Self(value)
+    }
+}
 
 impl Default for IoMatrix {
     fn default() -> Self {
         Self([1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+    }
+}
+
+impl From<IoMatrix> for three_d::Mat3 {
+    fn from(value: IoMatrix) -> Self {
+        let v = value.0;
+        three_d::Mat3::new(v[0], v[1], 0.0, v[2], v[3], 0.0, v[4], v[5], 1.0)
     }
 }

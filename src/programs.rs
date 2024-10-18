@@ -36,13 +36,15 @@ impl Programs {
         let blend = three_d::Program::from_source(
             context,
             "
+                uniform mat3 u_matrix;
                 in vec4 a_position;
                 in vec4 a_uv1;
                 in vec4 a_uv2;
                 out vec2 v_uv1;
                 out vec2 v_uv2;
+
                 void main() {
-                  gl_Position = a_position;
+                  gl_Position = vec4(u_matrix * a_position.xyz, a_position.w);
                   v_uv1 = a_uv1.xy;
                   v_uv2 = a_uv2.xy;
                 }
@@ -53,6 +55,7 @@ impl Programs {
                 in vec2 v_uv1;
                 in vec2 v_uv2;
                 out vec4 outColor;
+
                 void main() {
                   if(0.0 <= v_uv2.x && v_uv2.x < 1.0 && 0.0 <= v_uv2.y && v_uv2.y < 1.0) {
                     vec4 c1 = texture(u_texture1, v_uv1);
@@ -115,6 +118,7 @@ impl Programs {
         texture1: &three_d::Texture2D,
         texture2: &three_d::Texture2D,
         uv2: &three_d::VertexBuffer,
+        matrix: &three_d::Mat3,
     ) {
         let geom = three_d::VertexBuffer::new_with_data(
             context,
@@ -143,6 +147,10 @@ impl Programs {
         }
         if self.blend.requires_attribute("a_uv2") {
             self.blend.use_vertex_attribute("a_uv2", uv2);
+        }
+        if self.blend.requires_uniform("u_matrix") {
+            println!("matrix={:?}", matrix);
+            self.blend.use_uniform("u_matrix", matrix);
         }
         if self.blend.requires_attribute("a_position") {
             self.blend.use_vertex_attribute("a_position", &geom);
