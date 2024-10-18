@@ -45,7 +45,7 @@ pub enum IoFilter {
     DropShadow {
         radius: f32,
         offset: [f32; 2],
-        // TODO: color
+        color: [f32; 4],
     },
 }
 

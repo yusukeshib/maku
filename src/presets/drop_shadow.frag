@@ -3,6 +3,7 @@ uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 uniform float u_radius;
 uniform vec2 u_offset;
+uniform vec4 u_color;
 
 out vec4 outColor;
 
@@ -39,7 +40,7 @@ void main() {
         }
     }
 
-    vec4 shadowColor = vec4(0.0, 0.0, 0.0, color.a);
+    vec4 shadowColor = vec4(u_color.r, u_color.g, u_color.b, color.a);
     vec4 pixelColor = texture(u_texture, pos0);
 
     outColor = pixelColor * pixelColor.a + shadowColor * (1.0 - pixelColor.a);
