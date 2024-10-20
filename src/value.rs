@@ -43,9 +43,3 @@ impl From<[f32; 4]> for UniformValue {
         ))
     }
 }
-
-impl From<[f32; 6]> for UniformValue {
-    fn from(value: [f32; 6]) -> Self {
-        Self::Mat3(crate::io::IoMatrix::new(value).into())
-    }
-}

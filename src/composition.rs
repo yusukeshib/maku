@@ -374,6 +374,18 @@ fn fit_to_matrix(
             let scale = (viewport_width / texture_width).max(viewport_height / texture_height);
             three_d::Mat3::from_scale(scale)
         }
-        io::IoImageFit::None => three_d::Mat3::identity(),
+        io::IoImageFit::None {
+            translate,
+            rotate,
+            scale,
+        } => {
+            let s = three_d::Mat3::from_nonuniform_scale(scale.x(), scale.y());
+            let r = three_d::Mat3::from_angle_z(three_d::degrees(*rotate));
+            let t = three_d::Mat3::from_translation(three_d::vec2(
+                translate[0] / viewport_width,
+                translate[1] / viewport_height,
+            ));
+            t * r * s
+        }
     }
 }

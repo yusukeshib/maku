@@ -11,7 +11,7 @@ pub fn resolve_resource_path(
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum IoImageFit {
     ///  This is default. The image is resized to fill the given dimension. If necessary, the image will be stretched or squished to fit
     #[default]
@@ -21,7 +21,32 @@ pub enum IoImageFit {
     /// The image keeps its aspect ratio and fills the given dimension. The image will be clipped to fit
     Cover,
     /// The image is not resized
-    None,
+    None {
+        #[serde(default)]
+        translate: [f32; 2],
+        #[serde(default)]
+        rotate: f32,
+        #[serde(default)]
+        scale: Scale,
+    },
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Scale([f32; 2]);
+
+impl Default for Scale {
+    fn default() -> Self {
+        Self([1.0, 1.0])
+    }
+}
+
+impl Scale {
+    pub fn x(&self) -> f32 {
+        self.0[0]
+    }
+    pub fn y(&self) -> f32 {
+        self.0[1]
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -56,30 +81,4 @@ pub struct IoComposition {
     pub height: u32,
     #[serde(default)]
     pub fit: IoImageFit,
-}
-
-/// Affine transform matrix
-/// [ a, b,
-///   c, d,
-///   tx, ty]
-#[derive(Clone, Serialize, Deserialize)]
-pub struct IoMatrix([f32; 6]);
-
-impl IoMatrix {
-    pub fn new(value: [f32; 6]) -> Self {
-        Self(value)
-    }
-}
-
-impl Default for IoMatrix {
-    fn default() -> Self {
-        Self([1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-    }
-}
-
-impl From<IoMatrix> for three_d::Mat3 {
-    fn from(value: IoMatrix) -> Self {
-        let v = value.0;
-        three_d::Mat3::new(v[0], v[1], 0.0, v[2], v[3], 0.0, v[4], v[5], 1.0)
-    }
 }
