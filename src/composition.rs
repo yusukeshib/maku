@@ -380,7 +380,7 @@ fn fit_to_matrix(
             scale,
         } => {
             let s = three_d::Mat3::from_nonuniform_scale(scale.x(), scale.y());
-            let r = three_d::Mat3::from_angle_z(three_d::degrees(*rotate));
+            let r = three_d::Mat3::from_angle_z(three_d::degrees(-1.0 * (*rotate)));
             let t = three_d::Mat3::from_translation(three_d::vec2(
                 translate[0] / viewport_width,
                 translate[1] / viewport_height,

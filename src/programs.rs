@@ -9,13 +9,13 @@ impl Programs {
         let draw_texture = three_d::Program::from_source(
             context,
             "
-                uniform mat4 u_matrix;
-                in vec4 a_position;
+                uniform mat3 u_matrix;
+                in vec3 a_position;
                 in vec2 a_uv;
                 out vec2 v_uv;
 
                 void main() {
-                    gl_Position = u_matrix * a_position;
+                    gl_Position = vec4(u_matrix * a_position, 1.0);
                     v_uv = a_uv;
                 }
             ",
@@ -98,11 +98,11 @@ impl Programs {
             ],
         );
 
-        let u_matrix: three_d::Mat4 = matrix.into();
+        println!("matrix={:?}", matrix);
 
         self.draw_texture.use_vertex_attribute("a_uv", &a_uv);
         self.draw_texture.use_vertex_attribute("a_position", &geom);
-        self.draw_texture.use_uniform("u_matrix", u_matrix);
+        self.draw_texture.use_uniform("u_matrix", matrix);
         self.draw_texture.use_texture("u_texture", texture);
         self.draw_texture.draw_arrays(
             three_d::RenderStates::default(),
