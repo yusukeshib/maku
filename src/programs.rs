@@ -1,120 +1,120 @@
 pub struct Programs {
-    copy: three_d::Program,
-    blend: three_d::Program,
+    draw_texture: three_d::Program,
+    blend_textures: three_d::Program,
 }
 
 impl Programs {
     pub fn new(context: &three_d::Context) -> Self {
-        // For copy textures
-        let copy = three_d::Program::from_source(
+        // For draw_texture textures
+        let draw_texture = three_d::Program::from_source(
             context,
             "
+                uniform mat3 u_matrix;
                 in vec4 a_position;
-                in vec4 a_uv;
+                in vec2 a_uv;
                 out vec2 v_uv;
+
                 void main() {
-                  gl_Position = a_position;
-                  v_uv = a_uv.xy;
+                    gl_Position = vec4(a_position.xyz * u_matrix, a_position.w);
+                    v_uv = a_uv;
                 }
             ",
             "
                 uniform sampler2D u_texture;
                 in vec2 v_uv;
                 out vec4 outColor;
+
                 void main() {
-                  if(0.0 <= v_uv.x && v_uv.x <= 1.0 && 0.0 < v_uv.y && v_uv.y < 1.0) {
                     outColor = texture(u_texture, v_uv);
-                  } else {
-                    outColor = vec4(0.0);
-                  }
+                    
                 }
             ",
         )
         .unwrap();
 
-        // For blend textures
-        let blend = three_d::Program::from_source(
+        // For blend_textures textures
+        let blend_textures = three_d::Program::from_source(
             context,
             "
                 in vec4 a_position;
-                in vec4 a_uv1;
-                in vec4 a_uv2;
-                out vec2 v_uv1;
-                out vec2 v_uv2;
+                in vec2 a_uv;
+                out vec2 v_uv;
+
                 void main() {
-                  gl_Position = a_position;
-                  v_uv1 = a_uv1.xy;
-                  v_uv2 = a_uv2.xy;
+                    gl_Position = a_position;
+                    v_uv = a_uv;
                 }
             ",
             "
                 uniform sampler2D u_texture1;
                 uniform sampler2D u_texture2;
-                in vec2 v_uv1;
-                in vec2 v_uv2;
+                in vec2 v_uv;
                 out vec4 outColor;
+
                 void main() {
-                  if(0.0 <= v_uv2.x && v_uv2.x < 1.0 && 0.0 <= v_uv2.y && v_uv2.y < 1.0) {
-                    vec4 c1 = texture(u_texture1, v_uv1);
-                    vec4 c2 = texture(u_texture2, v_uv2);
+                    vec4 c1 = texture(u_texture1, v_uv);
+                    vec4 c2 = texture(u_texture2, v_uv);
                     outColor = c2 * c2.a + c1 * (1.0 - c2.a);
-                  } else {
-                    outColor = texture(u_texture1, v_uv1);
-                  }
                 }
             ",
         )
         .unwrap();
 
-        Self { copy, blend }
+        Self {
+            draw_texture,
+            blend_textures,
+        }
     }
 
-    pub fn copy(&self, context: &three_d::Context, texture: &three_d::Texture2D) {
-        let plane_positions = three_d::VertexBuffer::new_with_data(
+    pub fn draw_texture(
+        &self,
+        context: &three_d::Context,
+        texture: &three_d::Texture2D,
+        matrix: three_d::Mat3,
+        viewport: three_d::Viewport,
+    ) {
+        let sx = texture.width() as f32 / viewport.width as f32;
+        let sy = texture.height() as f32 / viewport.height as f32;
+        let geom = three_d::VertexBuffer::new_with_data(
             context,
             &[
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(-1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, -1.0, 0.0),
+                three_d::vec3(-sx, -sy, 0.0),
+                three_d::vec3(-sx, sy, 0.0),
+                three_d::vec3(sx, sy, 0.0),
+                three_d::vec3(-sx, -sy, 0.0),
+                three_d::vec3(sx, sy, 0.0),
+                three_d::vec3(sx, -sy, 0.0),
             ],
         );
-        let plane_uv = three_d::VertexBuffer::new_with_data(
+        let a_uv = three_d::VertexBuffer::new_with_data(
             context,
             &[
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(0.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 0.0, 0.0),
+                three_d::vec2(0.0, 0.0),
+                three_d::vec2(0.0, 1.0),
+                three_d::vec2(1.0, 1.0),
+                three_d::vec2(0.0, 0.0),
+                three_d::vec2(1.0, 1.0),
+                three_d::vec2(1.0, 0.0),
             ],
         );
-        if self.copy.requires_attribute("a_uv") {
-            self.copy.use_vertex_attribute("a_uv", &plane_uv);
-        }
-        if self.copy.requires_attribute("a_position") {
-            self.copy
-                .use_vertex_attribute("a_position", &plane_positions);
-        }
-        if self.copy.requires_uniform("u_texture") {
-            self.copy.use_texture("u_texture", texture);
-        }
-        self.copy.draw_arrays(
+
+        self.draw_texture.use_vertex_attribute("a_uv", &a_uv);
+        self.draw_texture.use_vertex_attribute("a_position", &geom);
+        self.draw_texture.use_uniform("u_matrix", matrix);
+        self.draw_texture.use_texture("u_texture", texture);
+        self.draw_texture.draw_arrays(
             three_d::RenderStates::default(),
-            three_d::Viewport::new_at_origo(texture.width(), texture.height()),
-            plane_positions.vertex_count(),
+            viewport,
+            geom.vertex_count(),
         );
     }
 
-    pub fn blend(
+    pub fn blend_textures(
         &self,
         context: &three_d::Context,
         texture1: &three_d::Texture2D,
         texture2: &three_d::Texture2D,
-        uv2: &three_d::VertexBuffer,
+        viewport: three_d::Viewport,
     ) {
         let geom = three_d::VertexBuffer::new_with_data(
             context,
@@ -127,35 +127,25 @@ impl Programs {
                 three_d::vec3(1.0, -1.0, 0.0),
             ],
         );
-        let uv1 = three_d::VertexBuffer::new_with_data(
+        let a_uv = three_d::VertexBuffer::new_with_data(
             context,
             &[
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(0.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 0.0, 0.0),
+                three_d::vec2(0.0, 0.0),
+                three_d::vec2(0.0, 1.0),
+                three_d::vec2(1.0, 1.0),
+                three_d::vec2(0.0, 0.0),
+                three_d::vec2(1.0, 1.0),
+                three_d::vec2(1.0, 0.0),
             ],
         );
-        if self.blend.requires_attribute("a_uv1") {
-            self.blend.use_vertex_attribute("a_uv1", &uv1);
-        }
-        if self.blend.requires_attribute("a_uv2") {
-            self.blend.use_vertex_attribute("a_uv2", uv2);
-        }
-        if self.blend.requires_attribute("a_position") {
-            self.blend.use_vertex_attribute("a_position", &geom);
-        }
-        if self.blend.requires_uniform("u_texture1") {
-            self.blend.use_texture("u_texture1", texture1);
-        }
-        if self.blend.requires_uniform("u_texture2") {
-            self.blend.use_texture("u_texture2", texture2);
-        }
-        self.blend.draw_arrays(
+        self.blend_textures.use_vertex_attribute("a_uv", &a_uv);
+        self.blend_textures
+            .use_vertex_attribute("a_position", &geom);
+        self.blend_textures.use_texture("u_texture1", texture1);
+        self.blend_textures.use_texture("u_texture2", texture2);
+        self.blend_textures.draw_arrays(
             three_d::RenderStates::default(),
-            three_d::Viewport::new_at_origo(texture1.width(), texture1.height()),
+            viewport,
             geom.vertex_count(),
         );
     }

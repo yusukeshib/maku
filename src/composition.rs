@@ -1,3 +1,5 @@
+use three_d::SquareMatrix;
+
 use crate::error::MakuError;
 use crate::io;
 use crate::programs;
@@ -9,12 +11,12 @@ pub enum Filter {
     /// An composition filter
     Composition {
         composition: Composition,
-        uv: three_d::VertexBuffer,
+        matrix: three_d::Mat3,
     },
     /// An image filter, containing a texture reference
     Image {
         texture: three_d::Texture2DRef,
-        uv: three_d::VertexBuffer,
+        matrix: three_d::Mat3,
     },
     /// A shader filter, containing a program
     Shader {
@@ -27,6 +29,8 @@ pub enum Filter {
 pub struct Composition {
     /// Input texture for processing
     input: three_d::Texture2D,
+    /// Input texture for processing
+    intermediate: three_d::Texture2D,
     /// Output texture after processing
     output: three_d::Texture2D,
     /// Width of the composition
@@ -49,39 +53,36 @@ impl Composition {
         for filter in composition.filters.iter() {
             match filter {
                 io::IoFilter::Image { path, fit } => {
-                    // Load image filter
-
                     let path = io::resolve_resource_path(parent_dir, path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
-
-                    let uv = new_uv(
-                        context,
-                        composition.width as f32,
-                        composition.height as f32,
+                    let matrix = fit_to_matrix(
+                        fit,
                         image.width() as f32,
                         image.height() as f32,
-                        fit,
+                        composition.width as f32,
+                        composition.height as f32,
                     );
 
                     filters.push(Filter::Image {
                         texture: three_d::Texture2DRef::from_texture(image),
-                        uv,
+                        matrix,
                     });
                 }
                 io::IoFilter::Composition(io) => {
                     let c = Box::pin(Self::load(context, io, parent_dir)).await?;
-
-                    let uv = new_uv(
-                        context,
-                        composition.width as f32,
-                        composition.height as f32,
+                    let matrix = fit_to_matrix(
+                        &io.fit,
                         c.width as f32,
                         c.height as f32,
-                        &io.fit,
+                        composition.width as f32,
+                        composition.height as f32,
                     );
 
-                    filters.push(Filter::Composition { composition: c, uv });
+                    filters.push(Filter::Composition {
+                        composition: c,
+                        matrix,
+                    });
                 }
                 _ => {
                     // Load shader filter
@@ -92,6 +93,7 @@ impl Composition {
 
         Ok(Self {
             input: new_texture(context, composition.width, composition.height),
+            intermediate: new_texture(context, composition.width, composition.height),
             output: new_texture(context, composition.width, composition.height),
             width: composition.width,
             height: composition.height,
@@ -113,7 +115,12 @@ impl Composition {
         // Copy final output to the target
         target.clear(context, clear_state);
         target.write(context, || {
-            programs.copy(context, &self.output);
+            programs.draw_texture(
+                context,
+                &self.output,
+                three_d::Mat3::identity(),
+                three_d::Viewport::new_at_origo(self.width, self.height),
+            );
             Ok::<(), MakuError>(())
         })?;
 
@@ -125,41 +132,35 @@ impl Composition {
         context: &three_d::Context,
         programs: &programs::Programs,
     ) -> Result<(), MakuError> {
-        let clear_state = three_d::ClearState::default();
-        let plane_positions = three_d::VertexBuffer::new_with_data(
-            context,
-            &[
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(-1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(-1.0, -1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, -1.0, 0.0),
-            ],
-        );
-        let plane_uv = three_d::VertexBuffer::new_with_data(
-            context,
-            &[
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(0.0, 1.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(0.0, 0.0, 0.0),
-                three_d::vec3(1.0, 1.0, 0.0),
-                three_d::vec3(1.0, 0.0, 0.0),
-            ],
-        );
-
+        let clear_state = three_d::ClearState::color_and_depth(0.0, 0.0, 0.0, 0.0, 1.0);
         let u_resolution = three_d::Vector2::new(self.width as f32, self.height as f32);
 
         for filter in self.filters.iter_mut() {
             // Apply each filter
             match filter {
-                Filter::Image { texture, uv } => {
+                Filter::Image { texture, matrix } => {
+                    self.intermediate
+                        .as_color_target(None)
+                        .clear(clear_state)
+                        .write(|| {
+                            programs.draw_texture(
+                                context,
+                                texture,
+                                *matrix,
+                                three_d::Viewport::new_at_origo(self.width, self.height),
+                            );
+                            Ok::<(), MakuError>(())
+                        })?;
                     self.output
                         .as_color_target(None)
                         .clear(clear_state)
                         .write(|| {
-                            programs.blend(context, &self.input, texture, uv);
+                            programs.blend_textures(
+                                context,
+                                &self.input,
+                                &self.intermediate,
+                                three_d::Viewport::new_at_origo(self.width, self.height),
+                            );
                             Ok::<(), MakuError>(())
                         })?;
                 }
@@ -168,6 +169,29 @@ impl Composition {
                         .as_color_target(None)
                         .clear(clear_state)
                         .write(|| {
+                            let a_uv = three_d::VertexBuffer::new_with_data(
+                                context,
+                                &[
+                                    three_d::vec2(0.0, 0.0),
+                                    three_d::vec2(0.0, 1.0),
+                                    three_d::vec2(1.0, 1.0),
+                                    three_d::vec2(0.0, 0.0),
+                                    three_d::vec2(1.0, 1.0),
+                                    three_d::vec2(1.0, 0.0),
+                                ],
+                            );
+                            let geom = three_d::VertexBuffer::new_with_data(
+                                context,
+                                &[
+                                    three_d::vec3(-1.0, -1.0, 0.0),
+                                    three_d::vec3(-1.0, 1.0, 0.0),
+                                    three_d::vec3(1.0, 1.0, 0.0),
+                                    three_d::vec3(-1.0, -1.0, 0.0),
+                                    three_d::vec3(1.0, 1.0, 0.0),
+                                    three_d::vec3(1.0, -1.0, 0.0),
+                                ],
+                            );
+
                             // Apply shader filter
                             if program.requires_uniform("u_resolution") {
                                 program.use_uniform("u_resolution", u_resolution);
@@ -178,10 +202,10 @@ impl Composition {
                                 }
                             }
                             if program.requires_attribute("a_uv") {
-                                program.use_vertex_attribute("a_uv", &plane_uv);
+                                program.use_vertex_attribute("a_uv", &a_uv);
                             }
                             if program.requires_attribute("a_position") {
-                                program.use_vertex_attribute("a_position", &plane_positions);
+                                program.use_vertex_attribute("a_position", &geom);
                             }
                             if program.requires_uniform("u_texture") {
                                 program.use_texture("u_texture", &self.input);
@@ -189,19 +213,39 @@ impl Composition {
                             program.draw_arrays(
                                 three_d::RenderStates::default(),
                                 three_d::Viewport::new_at_origo(self.width, self.height),
-                                plane_positions.vertex_count(),
+                                geom.vertex_count(),
                             );
                             Ok::<(), MakuError>(())
                         })?;
                 }
-                Filter::Composition { composition, uv } => {
+                Filter::Composition {
+                    composition,
+                    matrix,
+                } => {
                     composition.apply_filters(context, programs)?;
 
+                    self.intermediate
+                        .as_color_target(None)
+                        .clear(clear_state)
+                        .write(|| {
+                            programs.draw_texture(
+                                context,
+                                &composition.output,
+                                *matrix,
+                                three_d::Viewport::new_at_origo(self.width, self.height),
+                            );
+                            Ok::<(), MakuError>(())
+                        })?;
                     self.output
                         .as_color_target(None)
                         .clear(clear_state)
                         .write(|| {
-                            programs.blend(context, &self.input, &composition.output, uv);
+                            programs.blend_textures(
+                                context,
+                                &self.input,
+                                &self.intermediate,
+                                three_d::Viewport::new_at_origo(self.width, self.height),
+                            );
                             Ok::<(), MakuError>(())
                         })?;
                 }
@@ -212,7 +256,12 @@ impl Composition {
                 .as_color_target(None)
                 .clear(clear_state)
                 .write(|| {
-                    programs.copy(context, &self.output);
+                    programs.draw_texture(
+                        context,
+                        &self.output,
+                        three_d::Mat3::identity(),
+                        three_d::Viewport::new_at_origo(self.width, self.height),
+                    );
                     Ok::<(), MakuError>(())
                 })?;
         }
@@ -280,10 +329,7 @@ fn load_shader_filter(
             vec![
                 ("u_radius".to_string(), (*radius).into()),
                 ("u_offset".to_string(), (offset[0], offset[1]).into()),
-                (
-                    "u_color".to_string(),
-                    (color[0], color[1], color[2], color[3]).into(),
-                ),
+                ("u_color".to_string(), (*color).into()),
             ],
         ),
         io::IoFilter::Composition(..) | io::IoFilter::Image { .. } => unreachable!(),
@@ -308,44 +354,26 @@ fn new_texture(context: &three_d::Context, width: u32, height: u32) -> three_d::
     )
 }
 
-fn new_uv(
-    context: &three_d::Context,
-    composition_width: f32,
-    composition_height: f32,
-    image_width: f32,
-    image_height: f32,
+fn fit_to_matrix(
     fit: &io::IoImageFit,
-) -> three_d::VertexBuffer {
-    let (sx, sy) = match fit {
-        io::IoImageFit::Fill => (1.0, 1.0),
+    texture_width: f32,
+    texture_height: f32,
+    viewport_width: f32,
+    viewport_height: f32,
+) -> three_d::Mat3 {
+    match fit {
+        io::IoImageFit::Fill => three_d::Mat3::from_nonuniform_scale(
+            viewport_width / texture_width,
+            viewport_height / texture_height,
+        ),
         io::IoImageFit::Contain => {
-            let scale = (composition_width / image_width).min(composition_height / image_height);
-            let width = image_width * scale;
-            let height = image_height * scale;
-            (composition_width / width, composition_height / height)
+            let scale = (viewport_width / texture_width).min(viewport_height / texture_height);
+            three_d::Mat3::from_scale(scale)
         }
         io::IoImageFit::Cover => {
-            let scale = (composition_width / image_width).max(composition_height / image_height);
-            let width = image_width * scale;
-            let height = image_height * scale;
-            (composition_width / width, composition_height / height)
+            let scale = (viewport_width / texture_width).max(viewport_height / texture_height);
+            three_d::Mat3::from_scale(scale)
         }
-        io::IoImageFit::None => (
-            composition_width / image_width,
-            composition_height / image_height,
-        ),
-    };
-    let ox = (1.0 - sx) / 2.0;
-    let oy = (1.0 - sy) / 2.0;
-    three_d::VertexBuffer::new_with_data(
-        context,
-        &[
-            three_d::vec3(ox, oy, 0.0),
-            three_d::vec3(ox, oy + sy, 0.0),
-            three_d::vec3(ox + sx, oy + sy, 0.0),
-            three_d::vec3(ox, oy, 0.0),
-            three_d::vec3(ox + sx, oy + sy, 0.0),
-            three_d::vec3(ox + sx, oy, 0.0),
-        ],
-    )
+        io::IoImageFit::None => three_d::Mat3::identity(),
+    }
 }
