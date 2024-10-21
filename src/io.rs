@@ -12,7 +12,7 @@ pub fn resolve_resource_path(
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
-pub enum IoImageFit {
+pub enum IoTransform {
     ///  This is default. The image is resized to fill the given dimension. If necessary, the image will be stretched or squished to fit
     #[default]
     Fill,
@@ -21,7 +21,7 @@ pub enum IoImageFit {
     /// The image keeps its aspect ratio and fills the given dimension. The image will be clipped to fit
     Cover,
     /// The image is not resized
-    None {
+    Custom {
         #[serde(default)]
         translate: [f32; 2],
         #[serde(default)]
@@ -56,7 +56,7 @@ pub enum IoFilter {
     Image {
         path: String,
         #[serde(default)]
-        fit: IoImageFit,
+        transform: IoTransform,
     },
     Shader {
         frag: String,
@@ -80,5 +80,5 @@ pub struct IoComposition {
     pub width: u32,
     pub height: u32,
     #[serde(default)]
-    pub fit: IoImageFit,
+    pub transform: IoTransform,
 }

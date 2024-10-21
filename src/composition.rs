@@ -52,12 +52,12 @@ impl Composition {
         let mut filters = vec![];
         for filter in composition.filters.iter() {
             match filter {
-                io::IoFilter::Image { path, fit } => {
+                io::IoFilter::Image { path, transform } => {
                     let path = io::resolve_resource_path(parent_dir, path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
-                    let matrix = fit_to_matrix(
-                        fit,
+                    let matrix = transform_to_matrix(
+                        transform,
                         image.width() as f32,
                         image.height() as f32,
                         composition.width as f32,
@@ -71,8 +71,8 @@ impl Composition {
                 }
                 io::IoFilter::Composition(io) => {
                     let c = Box::pin(Self::load(context, io, parent_dir)).await?;
-                    let matrix = fit_to_matrix(
-                        &io.fit,
+                    let matrix = transform_to_matrix(
+                        &io.transform,
                         c.width as f32,
                         c.height as f32,
                         composition.width as f32,
@@ -354,27 +354,27 @@ fn new_texture(context: &three_d::Context, width: u32, height: u32) -> three_d::
     )
 }
 
-fn fit_to_matrix(
-    fit: &io::IoImageFit,
+fn transform_to_matrix(
+    transform: &io::IoTransform,
     texture_width: f32,
     texture_height: f32,
     viewport_width: f32,
     viewport_height: f32,
 ) -> three_d::Mat3 {
-    match fit {
-        io::IoImageFit::Fill => three_d::Mat3::from_nonuniform_scale(
+    match transform {
+        io::IoTransform::Fill => three_d::Mat3::from_nonuniform_scale(
             viewport_width / texture_width,
             viewport_height / texture_height,
         ),
-        io::IoImageFit::Contain => {
+        io::IoTransform::Contain => {
             let scale = (viewport_width / texture_width).min(viewport_height / texture_height);
             three_d::Mat3::from_scale(scale)
         }
-        io::IoImageFit::Cover => {
+        io::IoTransform::Cover => {
             let scale = (viewport_width / texture_width).max(viewport_height / texture_height);
             three_d::Mat3::from_scale(scale)
         }
-        io::IoImageFit::None {
+        io::IoTransform::Custom {
             translate,
             rotate,
             scale,

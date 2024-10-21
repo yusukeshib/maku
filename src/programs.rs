@@ -98,8 +98,6 @@ impl Programs {
             ],
         );
 
-        println!("matrix={:?}", matrix);
-
         self.draw_texture.use_vertex_attribute("a_uv", &a_uv);
         self.draw_texture.use_vertex_attribute("a_position", &geom);
         self.draw_texture.use_uniform("u_matrix", matrix);
