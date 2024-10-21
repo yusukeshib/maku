@@ -1,3 +1,4 @@
+pub mod blend_mode;
 pub mod composition;
 pub mod error;
 pub mod io;
