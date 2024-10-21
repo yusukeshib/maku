@@ -53,11 +53,7 @@ impl Scale {
 #[serde(tag = "type")]
 pub enum IoFilter {
     Composition(IoComposition),
-    Image {
-        path: String,
-        #[serde(default)]
-        transform: IoTransform,
-    },
+    Image(IoImage),
     Shader {
         frag: String,
         vert: String,
@@ -72,6 +68,13 @@ pub enum IoFilter {
         offset: [f32; 2],
         color: [f32; 4],
     },
+}
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct IoImage {
+    pub path: String,
+    #[serde(default)]
+    pub transform: IoTransform,
 }
 
 #[derive(Default, Serialize, Deserialize)]

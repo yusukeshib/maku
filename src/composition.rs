@@ -52,12 +52,12 @@ impl Composition {
         let mut filters = vec![];
         for filter in composition.filters.iter() {
             match filter {
-                io::IoFilter::Image { path, transform } => {
-                    let path = io::resolve_resource_path(parent_dir, path);
+                io::IoFilter::Image(io_image) => {
+                    let path = io::resolve_resource_path(parent_dir, &io_image.path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
                     let matrix = transform_to_matrix(
-                        transform,
+                        &io_image.transform,
                         image.width() as f32,
                         image.height() as f32,
                         composition.width as f32,
