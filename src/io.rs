@@ -75,6 +75,7 @@ pub struct IoImage {
     pub path: String,
     #[serde(default)]
     pub transform: IoTransform,
+    // TODO: blend_mode
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -84,4 +85,5 @@ pub struct IoComposition {
     pub height: u32,
     #[serde(default)]
     pub transform: IoTransform,
+    // TODO: blend_mode
 }
