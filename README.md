@@ -11,6 +11,8 @@ The initial goal:
 - Composable project structure for reusability (Group, Variable)
 - Web UI to edit projects
 
+![Composition design idea](./composition_design_idea.png)
+
 The future goal:
 
 - Machine learning filters
