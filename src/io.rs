@@ -12,23 +12,13 @@ pub fn resolve_resource_path(
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
-pub enum IoTransform {
-    ///  This is default. The image is resized to fill the given dimension. If necessary, the image will be stretched or squished to fit
-    #[default]
-    Fill,
-    /// The image keeps its aspect ratio, but is resized to fit within the given dimension
-    Contain,
-    /// The image keeps its aspect ratio and fills the given dimension. The image will be clipped to fit
-    Cover,
-    /// The image is not resized
-    Custom {
-        #[serde(default)]
-        translate: [f32; 2],
-        #[serde(default)]
-        rotate: f32,
-        #[serde(default)]
-        scale: Scale,
-    },
+pub struct IoTransform {
+    #[serde(default)]
+    pub translate: [f32; 2],
+    #[serde(default)]
+    pub rotate: f32,
+    #[serde(default)]
+    pub scale: Scale,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -49,9 +39,40 @@ impl Scale {
     }
 }
 
+// {
+//   "nodes": [
+//     {
+//       "id": 1,
+//       "type": "Image",
+//       "path": { "type": "variable", "key": "input", "value": "./assets/input.png" }
+//     },
+//     {
+//       "id": 2,
+//       "type": "GaussianBlur",
+//       "radius": { "type": "variable", "value": 16 },
+//       "input": { "type": "link", "node": 1, "key": "output" }
+//     },
+//     {
+//       "id": 3,
+//       "type": "BlackWhite",
+//       "input": { "type": "link", "node": 2, "key": "output" }
+//     },
+//     {
+//       "id": 4,
+//       "type": "Save",
+//       "input": { "type": "link", "node": 3, "key": "output" },
+//       "path": { "type": "variable", "key": "output", "value": "./assets/output.png" }
+//     }
+//   ],
+//   "variables": {
+//     "input": "assets/input.png",
+//     "output": "assets/output.png"
+//   }
+// }
+
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
-pub enum IoFilter {
+pub enum IoNode {
     Composition(IoComposition),
     Image(IoImage),
     Shader {
@@ -79,7 +100,7 @@ pub struct IoImage {
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct IoComposition {
-    pub filters: Vec<IoFilter>,
+    pub nodes: Vec<IoNode>,
     pub width: u32,
     pub height: u32,
     #[serde(default)]

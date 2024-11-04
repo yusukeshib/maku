@@ -6,19 +6,19 @@ use crate::programs;
 use crate::target;
 use crate::value;
 
-/// Represents different types of filters that can be applied to an image
-pub enum Filter {
-    /// An composition filter
+/// Represents different types of nodes that can be applied to an image
+pub enum Node {
+    /// An composition node
     Composition {
         composition: Composition,
         matrix: three_d::Mat3,
     },
-    /// An image filter, containing a texture reference
+    /// An image node, containing a texture reference
     Image {
         texture: three_d::Texture2DRef,
         matrix: three_d::Mat3,
     },
-    /// A shader filter, containing a program
+    /// A shader node, containing a program
     Shader {
         program: three_d::Program,
         uniforms: Vec<(String, value::UniformValue)>,
@@ -37,8 +37,8 @@ pub struct Composition {
     width: u32,
     /// Width of the composition
     height: u32,
-    /// List of filters to be applied
-    filters: Vec<Filter>,
+    /// List of nodes to be applied
+    nodes: Vec<Node>,
 }
 
 impl Composition {
@@ -47,46 +47,42 @@ impl Composition {
         composition: &io::IoComposition,
         parent_dir: &std::path::Path,
     ) -> Result<Self, MakuError> {
-        // Load resources and create filters
+        // Load resources and create nodes
 
-        let mut filters = vec![];
-        for filter in composition.filters.iter() {
-            match filter {
-                io::IoFilter::Image(io_image) => {
+        let mut nodes = vec![];
+        for node in composition.nodes.iter() {
+            match node {
+                io::IoNode::Image(io_image) => {
                     let path = io::resolve_resource_path(parent_dir, &io_image.path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
                     let matrix = transform_to_matrix(
                         &io_image.transform,
-                        image.width() as f32,
-                        image.height() as f32,
                         composition.width as f32,
                         composition.height as f32,
                     );
 
-                    filters.push(Filter::Image {
+                    nodes.push(Node::Image {
                         texture: three_d::Texture2DRef::from_texture(image),
                         matrix,
                     });
                 }
-                io::IoFilter::Composition(io) => {
+                io::IoNode::Composition(io) => {
                     let c = Box::pin(Self::load(context, io, parent_dir)).await?;
                     let matrix = transform_to_matrix(
                         &io.transform,
-                        c.width as f32,
-                        c.height as f32,
                         composition.width as f32,
                         composition.height as f32,
                     );
 
-                    filters.push(Filter::Composition {
+                    nodes.push(Node::Composition {
                         composition: c,
                         matrix,
                     });
                 }
                 _ => {
-                    // Load shader filter
-                    filters.push(load_shader_filter(context, filter, parent_dir));
+                    // Load shader node
+                    nodes.push(load_shader_node(context, node, parent_dir));
                 }
             }
         }
@@ -97,11 +93,11 @@ impl Composition {
             output: new_texture(context, composition.width, composition.height),
             width: composition.width,
             height: composition.height,
-            filters,
+            nodes,
         })
     }
 
-    /// Render the image with all applied filters
+    /// Render the image with all applied nodes
     pub fn render(
         &mut self,
         context: &three_d::Context,
@@ -110,7 +106,7 @@ impl Composition {
     ) -> Result<(), MakuError> {
         let clear_state = three_d::ClearState::default();
 
-        self.apply_filters(context, programs)?;
+        self.apply_nodes(context, programs)?;
 
         // Copy final output to the target
         target.clear(context, clear_state);
@@ -127,7 +123,7 @@ impl Composition {
         Ok(())
     }
 
-    fn apply_filters(
+    fn apply_nodes(
         &mut self,
         context: &three_d::Context,
         programs: &programs::Programs,
@@ -135,10 +131,10 @@ impl Composition {
         let clear_state = three_d::ClearState::color_and_depth(0.0, 0.0, 0.0, 0.0, 1.0);
         let u_resolution = three_d::Vector2::new(self.width as f32, self.height as f32);
 
-        for filter in self.filters.iter_mut() {
-            // Apply each filter
-            match filter {
-                Filter::Image { texture, matrix } => {
+        for node in self.nodes.iter_mut() {
+            // Apply each node
+            match node {
+                Node::Image { texture, matrix } => {
                     self.intermediate
                         .as_color_target(None)
                         .clear(clear_state)
@@ -164,7 +160,7 @@ impl Composition {
                             Ok::<(), MakuError>(())
                         })?;
                 }
-                Filter::Shader { program, uniforms } => {
+                Node::Shader { program, uniforms } => {
                     self.output
                         .as_color_target(None)
                         .clear(clear_state)
@@ -192,7 +188,7 @@ impl Composition {
                                 ],
                             );
 
-                            // Apply shader filter
+                            // Apply shader node
                             if program.requires_uniform("u_resolution") {
                                 program.use_uniform("u_resolution", u_resolution);
                             }
@@ -218,11 +214,11 @@ impl Composition {
                             Ok::<(), MakuError>(())
                         })?;
                 }
-                Filter::Composition {
+                Node::Composition {
                     composition,
                     matrix,
                 } => {
-                    composition.apply_filters(context, programs)?;
+                    composition.apply_nodes(context, programs)?;
 
                     self.intermediate
                         .as_color_target(None)
@@ -251,7 +247,7 @@ impl Composition {
                 }
             }
 
-            // Copy output to input for next filter
+            // Copy output to input for next node
             self.input
                 .as_color_target(None)
                 .clear(clear_state)
@@ -269,7 +265,7 @@ impl Composition {
         Ok(())
     }
 
-    /// Render the image with all applied filters and save it to a file
+    /// Render the image with all applied nodes and save it to a file
     pub fn render_to_file(
         &mut self,
         context: &three_d::Context,
@@ -298,28 +294,28 @@ impl Composition {
     }
 }
 
-fn load_shader_filter(
+fn load_shader_node(
     context: &three_d::Context,
-    item: &io::IoFilter,
+    item: &io::IoNode,
     parent_dir: &std::path::Path,
-) -> Filter {
+) -> Node {
     let (vert, frag, uniforms) = match item {
-        io::IoFilter::Shader { frag, vert } => (
+        io::IoNode::Shader { frag, vert } => (
             std::fs::read_to_string(io::resolve_resource_path(parent_dir, vert)).unwrap(),
             std::fs::read_to_string(io::resolve_resource_path(parent_dir, frag)).unwrap(),
             vec![],
         ),
-        io::IoFilter::BlackWhite => (
+        io::IoNode::BlackWhite => (
             include_str!("./presets/blackwhite.vert").to_string(),
             include_str!("./presets/blackwhite.frag").to_string(),
             vec![],
         ),
-        io::IoFilter::GaussianBlur { radius } => (
+        io::IoNode::GaussianBlur { radius } => (
             include_str!("./presets/gaussian_blur.vert").to_string(),
             include_str!("./presets/gaussian_blur.frag").to_string(),
             vec![("u_radius".to_string(), (*radius).into())],
         ),
-        io::IoFilter::DropShadow {
+        io::IoNode::DropShadow {
             radius,
             offset,
             color,
@@ -332,9 +328,9 @@ fn load_shader_filter(
                 ("u_color".to_string(), (*color).into()),
             ],
         ),
-        io::IoFilter::Composition(..) | io::IoFilter::Image { .. } => unreachable!(),
+        io::IoNode::Composition(..) | io::IoNode::Image { .. } => unreachable!(),
     };
-    Filter::Shader {
+    Node::Shader {
         program: three_d::Program::from_source(context, &vert, &frag).unwrap(),
         uniforms,
     }
@@ -355,37 +351,15 @@ fn new_texture(context: &three_d::Context, width: u32, height: u32) -> three_d::
 }
 
 fn transform_to_matrix(
-    transform: &io::IoTransform,
-    texture_width: f32,
-    texture_height: f32,
+    tr: &io::IoTransform,
     viewport_width: f32,
     viewport_height: f32,
 ) -> three_d::Mat3 {
-    match transform {
-        io::IoTransform::Fill => three_d::Mat3::from_nonuniform_scale(
-            viewport_width / texture_width,
-            viewport_height / texture_height,
-        ),
-        io::IoTransform::Contain => {
-            let scale = (viewport_width / texture_width).min(viewport_height / texture_height);
-            three_d::Mat3::from_scale(scale)
-        }
-        io::IoTransform::Cover => {
-            let scale = (viewport_width / texture_width).max(viewport_height / texture_height);
-            three_d::Mat3::from_scale(scale)
-        }
-        io::IoTransform::Custom {
-            translate,
-            rotate,
-            scale,
-        } => {
-            let s = three_d::Mat3::from_nonuniform_scale(scale.x(), scale.y());
-            let r = three_d::Mat3::from_angle_z(three_d::degrees(-1.0 * (*rotate)));
-            let t = three_d::Mat3::from_translation(three_d::vec2(
-                translate[0] / viewport_width,
-                translate[1] / viewport_height,
-            ));
-            t * r * s
-        }
-    }
+    let s = three_d::Mat3::from_nonuniform_scale(tr.scale.x(), tr.scale.y());
+    let r = three_d::Mat3::from_angle_z(three_d::degrees(-1.0 * tr.rotate));
+    let t = three_d::Mat3::from_translation(three_d::vec2(
+        tr.translate[0] / viewport_width,
+        tr.translate[1] / viewport_height,
+    ));
+    t * r * s
 }
