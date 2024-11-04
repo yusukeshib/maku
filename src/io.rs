@@ -44,12 +44,12 @@ impl Scale {
 //     {
 //       "id": 1,
 //       "type": "Image",
-//       "path": { "type": "variable", "key": "input", "value": "./assets/input.png" }
+//       "path": { "type": "value", "key": "input", "value": "./assets/input.png" }
 //     },
 //     {
 //       "id": 2,
 //       "type": "GaussianBlur",
-//       "radius": { "type": "variable", "value": 16 },
+//       "radius": { "type": "value", "value": 16 },
 //       "input": { "type": "link", "node": 1, "key": "output" }
 //     },
 //     {
@@ -61,13 +61,13 @@ impl Scale {
 //       "id": 4,
 //       "type": "Save",
 //       "input": { "type": "link", "node": 3, "key": "output" },
-//       "path": { "type": "variable", "key": "output", "value": "./assets/output.png" }
+//       "path": { "type": "value", "key": output", "value": "./assets/output.png" }
 //     }
 //   ],
-//   "variables": {
-//     "input": "assets/input.png",
-//     "output": "assets/output.png"
-//   }
+//   // "values": {
+//   //   "input": "assets/input.png",
+//   //   "output": "assets/output.png"
+//   // }
 // }
 
 #[derive(Serialize, Deserialize)]
@@ -91,6 +91,28 @@ pub enum IoNode {
     },
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct IoNodeWithId {
+    id: usize,
+    #[serde(flatten)]
+    node: IoNode,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum IoValue {
+    Variable {
+        // Exposed key to use to override from outside
+        key: String,
+        // TODO: Introduce Value
+        value: f32,
+    },
+    Link {
+        node_id: usize,
+        key: String,
+    },
+}
+
 #[derive(Default, Serialize, Deserialize)]
 pub struct IoImage {
     pub path: String,
@@ -101,8 +123,6 @@ pub struct IoImage {
 #[derive(Default, Serialize, Deserialize)]
 pub struct IoComposition {
     pub nodes: Vec<IoNode>,
-    pub width: u32,
-    pub height: u32,
     #[serde(default)]
     pub transform: IoTransform,
 }
