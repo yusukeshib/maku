@@ -9,15 +9,9 @@ use crate::value;
 /// Represents different types of nodes that can be applied to an image
 pub enum Node {
     /// An composition node
-    Composition {
-        composition: Composition,
-        matrix: three_d::Mat3,
-    },
+    Composition { composition: Composition },
     /// An image node, containing a texture reference
-    Image {
-        texture: three_d::Texture2DRef,
-        matrix: three_d::Mat3,
-    },
+    Image { texture: three_d::Texture2DRef },
     /// A shader node, containing a program
     Shader {
         program: three_d::Program,
@@ -27,17 +21,6 @@ pub enum Node {
 
 // Composition
 pub struct Composition {
-    /// Input texture for processing
-    input: three_d::Texture2D,
-    /// Input texture for processing
-    intermediate: three_d::Texture2D,
-    /// Output texture after processing
-    output: three_d::Texture2D,
-    /// Width of the composition
-    width: u32,
-    /// Width of the composition
-    height: u32,
-    /// List of nodes to be applied
     nodes: Vec<Node>,
 }
 
@@ -56,29 +39,13 @@ impl Composition {
                     let path = io::resolve_resource_path(parent_dir, &io_image.path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
-                    let matrix = transform_to_matrix(
-                        &io_image.transform,
-                        composition.width as f32,
-                        composition.height as f32,
-                    );
-
                     nodes.push(Node::Image {
                         texture: three_d::Texture2DRef::from_texture(image),
-                        matrix,
                     });
                 }
                 io::IoNode::Composition(io) => {
-                    let c = Box::pin(Self::load(context, io, parent_dir)).await?;
-                    let matrix = transform_to_matrix(
-                        &io.transform,
-                        composition.width as f32,
-                        composition.height as f32,
-                    );
-
-                    nodes.push(Node::Composition {
-                        composition: c,
-                        matrix,
-                    });
+                    let composition = Box::pin(Self::load(context, io, parent_dir)).await?;
+                    nodes.push(Node::Composition { composition });
                 }
                 _ => {
                     // Load shader node
@@ -87,14 +54,7 @@ impl Composition {
             }
         }
 
-        Ok(Self {
-            input: new_texture(context, composition.width, composition.height),
-            intermediate: new_texture(context, composition.width, composition.height),
-            output: new_texture(context, composition.width, composition.height),
-            width: composition.width,
-            height: composition.height,
-            nodes,
-        })
+        Ok(Self { nodes })
     }
 
     /// Render the image with all applied nodes
@@ -265,33 +225,33 @@ impl Composition {
         Ok(())
     }
 
-    /// Render the image with all applied nodes and save it to a file
-    pub fn render_to_file(
-        &mut self,
-        context: &three_d::Context,
-        programs: &programs::Programs,
-        output_path: std::path::PathBuf,
-    ) -> Result<(), MakuError> {
-        // Create a new texture for rendering
-        let texture = new_texture(context, self.width, self.height);
-        let mut target = target::Target::Pixels { texture };
+    // /// Render the image with all applied nodes and save it to a file
+    // pub fn render_to_file(
+    //     &mut self,
+    //     context: &three_d::Context,
+    //     programs: &programs::Programs,
+    //     output_path: std::path::PathBuf,
+    // ) -> Result<(), MakuError> {
+    //     // Create a new texture for rendering
+    //     let texture = new_texture(context, self.width, self.height);
+    //     let mut target = target::Target::Pixels { texture };
 
-        // Render to the target
-        self.render(context, &mut target, programs)?;
+    //     // Render to the target
+    //     self.render(context, &mut target, programs)?;
 
-        // Save the rendered image to a file
-        let pixels = target.pixels();
-        image::save_buffer_with_format(
-            output_path,
-            &pixels,
-            self.width,
-            self.height,
-            image::ColorType::Rgba8,
-            image::ImageFormat::Png,
-        )?;
+    //     // Save the rendered image to a file
+    //     let pixels = target.pixels();
+    //     image::save_buffer_with_format(
+    //         output_path,
+    //         &pixels,
+    //         self.width,
+    //         self.height,
+    //         image::ColorType::Rgba8,
+    //         image::ImageFormat::Png,
+    //     )?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 fn load_shader_node(
