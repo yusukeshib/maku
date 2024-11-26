@@ -9,15 +9,9 @@ use crate::value;
 /// Represents different types of nodes that can be applied to an image
 pub enum Node {
     /// An composition node
-    Composition {
-        composition: Composition,
-        matrix: three_d::Mat3,
-    },
+    Composition { composition: Composition },
     /// An image node, containing a texture reference
-    Image {
-        texture: three_d::Texture2DRef,
-        matrix: three_d::Mat3,
-    },
+    Image { texture: three_d::Texture2DRef },
     /// A shader node, containing a program
     Shader {
         program: three_d::Program,
@@ -27,17 +21,6 @@ pub enum Node {
 
 // Composition
 pub struct Composition {
-    /// Input texture for processing
-    input: three_d::Texture2D,
-    /// Input texture for processing
-    intermediate: three_d::Texture2D,
-    /// Output texture after processing
-    output: three_d::Texture2D,
-    /// Width of the composition
-    width: u32,
-    /// Width of the composition
-    height: u32,
-    /// List of nodes to be applied
     nodes: Vec<Node>,
 }
 
@@ -51,74 +34,50 @@ impl Composition {
 
         let mut nodes = vec![];
         for node in composition.nodes.iter() {
-            match node {
-                io::IoNode::Image(io_image) => {
-                    let path = io::resolve_resource_path(parent_dir, &io_image.path);
+            match &node.node {
+                io::IoNode::Image { path } => {
+                    let path = io::resolve_resource_path(parent_dir, path);
                     let mut loaded = three_d_asset::io::load_async(&[path]).await.unwrap();
                     let image = three_d::Texture2D::new(context, &loaded.deserialize("").unwrap());
-                    let matrix = transform_to_matrix(
-                        &io_image.transform,
-                        composition.width as f32,
-                        composition.height as f32,
-                    );
-
                     nodes.push(Node::Image {
                         texture: three_d::Texture2DRef::from_texture(image),
-                        matrix,
                     });
                 }
                 io::IoNode::Composition(io) => {
-                    let c = Box::pin(Self::load(context, io, parent_dir)).await?;
-                    let matrix = transform_to_matrix(
-                        &io.transform,
-                        composition.width as f32,
-                        composition.height as f32,
-                    );
-
-                    nodes.push(Node::Composition {
-                        composition: c,
-                        matrix,
-                    });
+                    let composition = Box::pin(Self::load(context, io, parent_dir)).await?;
+                    nodes.push(Node::Composition { composition });
                 }
                 _ => {
                     // Load shader node
-                    nodes.push(load_shader_node(context, node, parent_dir));
+                    nodes.push(load_shader_node(context, &node.node, parent_dir));
                 }
             }
         }
 
-        Ok(Self {
-            input: new_texture(context, composition.width, composition.height),
-            intermediate: new_texture(context, composition.width, composition.height),
-            output: new_texture(context, composition.width, composition.height),
-            width: composition.width,
-            height: composition.height,
-            nodes,
-        })
+        Ok(Self { nodes })
     }
 
     /// Render the image with all applied nodes
     pub fn render(
         &mut self,
         context: &three_d::Context,
-        target: &mut target::Target,
+        _target: &mut target::Target,
         programs: &programs::Programs,
     ) -> Result<(), MakuError> {
-        let clear_state = three_d::ClearState::default();
-
         self.apply_nodes(context, programs)?;
 
-        // Copy final output to the target
-        target.clear(context, clear_state);
-        target.write(context, || {
-            programs.draw_texture(
-                context,
-                &self.output,
-                three_d::Mat3::identity(),
-                three_d::Viewport::new_at_origo(self.width, self.height),
-            );
-            Ok::<(), MakuError>(())
-        })?;
+        // // Copy final output to the target
+        // let clear_state = three_d::ClearState::default();
+        // target.clear(context, clear_state);
+        // target.write(context, || {
+        //     programs.draw_texture(
+        //         context,
+        //         &self.output,
+        //         three_d::Mat3::identity(),
+        //         three_d::Viewport::new_at_origo(self.width, self.height),
+        //     );
+        //     Ok::<(), MakuError>(())
+        // })?;
 
         Ok(())
     }
@@ -129,12 +88,11 @@ impl Composition {
         programs: &programs::Programs,
     ) -> Result<(), MakuError> {
         let clear_state = three_d::ClearState::color_and_depth(0.0, 0.0, 0.0, 0.0, 1.0);
-        let u_resolution = three_d::Vector2::new(self.width as f32, self.height as f32);
 
         for node in self.nodes.iter_mut() {
             // Apply each node
             match node {
-                Node::Image { texture, matrix } => {
+                Node::Image { texture } => {
                     self.intermediate
                         .as_color_target(None)
                         .clear(clear_state)
@@ -142,7 +100,7 @@ impl Composition {
                             programs.draw_texture(
                                 context,
                                 texture,
-                                *matrix,
+                                three_d::Mat3::identity(),
                                 three_d::Viewport::new_at_origo(self.width, self.height),
                             );
                             Ok::<(), MakuError>(())
@@ -190,7 +148,10 @@ impl Composition {
 
                             // Apply shader node
                             if program.requires_uniform("u_resolution") {
-                                program.use_uniform("u_resolution", u_resolution);
+                                program.use_uniform(
+                                    "u_resolution",
+                                    three_d::Vector2::new(self.width as f32, self.height as f32),
+                                );
                             }
                             for (key, value) in uniforms.iter() {
                                 if program.requires_uniform(key) {
@@ -214,10 +175,7 @@ impl Composition {
                             Ok::<(), MakuError>(())
                         })?;
                 }
-                Node::Composition {
-                    composition,
-                    matrix,
-                } => {
+                Node::Composition { composition } => {
                     composition.apply_nodes(context, programs)?;
 
                     self.intermediate
@@ -227,7 +185,7 @@ impl Composition {
                             programs.draw_texture(
                                 context,
                                 &composition.output,
-                                *matrix,
+                                three_d::Mat3::identity(),
                                 three_d::Viewport::new_at_origo(self.width, self.height),
                             );
                             Ok::<(), MakuError>(())
@@ -265,33 +223,33 @@ impl Composition {
         Ok(())
     }
 
-    /// Render the image with all applied nodes and save it to a file
-    pub fn render_to_file(
-        &mut self,
-        context: &three_d::Context,
-        programs: &programs::Programs,
-        output_path: std::path::PathBuf,
-    ) -> Result<(), MakuError> {
-        // Create a new texture for rendering
-        let texture = new_texture(context, self.width, self.height);
-        let mut target = target::Target::Pixels { texture };
+    // /// Render the image with all applied nodes and save it to a file
+    // pub fn render_to_file(
+    //     &mut self,
+    //     context: &three_d::Context,
+    //     programs: &programs::Programs,
+    //     output_path: std::path::PathBuf,
+    // ) -> Result<(), MakuError> {
+    //     // Create a new texture for rendering
+    //     let texture = new_texture(context, self.width, self.height);
+    //     let mut target = target::Target::Pixels { texture };
 
-        // Render to the target
-        self.render(context, &mut target, programs)?;
+    //     // Render to the target
+    //     self.render(context, &mut target, programs)?;
 
-        // Save the rendered image to a file
-        let pixels = target.pixels();
-        image::save_buffer_with_format(
-            output_path,
-            &pixels,
-            self.width,
-            self.height,
-            image::ColorType::Rgba8,
-            image::ImageFormat::Png,
-        )?;
+    //     // Save the rendered image to a file
+    //     let pixels = target.pixels();
+    //     image::save_buffer_with_format(
+    //         output_path,
+    //         &pixels,
+    //         self.width,
+    //         self.height,
+    //         image::ColorType::Rgba8,
+    //         image::ImageFormat::Png,
+    //     )?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 fn load_shader_node(
@@ -350,16 +308,16 @@ fn new_texture(context: &three_d::Context, width: u32, height: u32) -> three_d::
     )
 }
 
-fn transform_to_matrix(
-    tr: &io::IoTransform,
-    viewport_width: f32,
-    viewport_height: f32,
-) -> three_d::Mat3 {
-    let s = three_d::Mat3::from_nonuniform_scale(tr.scale.x(), tr.scale.y());
-    let r = three_d::Mat3::from_angle_z(three_d::degrees(-1.0 * tr.rotate));
-    let t = three_d::Mat3::from_translation(three_d::vec2(
-        tr.translate[0] / viewport_width,
-        tr.translate[1] / viewport_height,
-    ));
-    t * r * s
-}
+// fn transform_to_matrix(
+//     tr: &io::IoTransform,
+//     viewport_width: f32,
+//     viewport_height: f32,
+// ) -> three_d::Mat3 {
+//     let s = three_d::Mat3::from_nonuniform_scale(tr.scale.x(), tr.scale.y());
+//     let r = three_d::Mat3::from_angle_z(three_d::degrees(-1.0 * tr.rotate));
+//     let t = three_d::Mat3::from_translation(three_d::vec2(
+//         tr.translate[0] / viewport_width,
+//         tr.translate[1] / viewport_height,
+//     ));
+//     t * r * s
+// }

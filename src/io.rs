@@ -10,34 +10,34 @@ pub fn resolve_resource_path(
     resolved
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub struct IoTransform {
-    #[serde(default)]
-    pub translate: [f32; 2],
-    #[serde(default)]
-    pub rotate: f32,
-    #[serde(default)]
-    pub scale: Scale,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Scale([f32; 2]);
-
-impl Default for Scale {
-    fn default() -> Self {
-        Self([1.0, 1.0])
-    }
-}
-
-impl Scale {
-    pub fn x(&self) -> f32 {
-        self.0[0]
-    }
-    pub fn y(&self) -> f32 {
-        self.0[1]
-    }
-}
+// #[derive(Clone, Default, Serialize, Deserialize)]
+// #[serde(tag = "type", rename_all = "lowercase")]
+// pub struct IoTransform {
+//     #[serde(default)]
+//     pub translate: [f32; 2],
+//     #[serde(default)]
+//     pub rotate: f32,
+//     #[serde(default)]
+//     pub scale: Scale,
+// }
+//
+// #[derive(Clone, Serialize, Deserialize)]
+// pub struct Scale([f32; 2]);
+//
+// impl Default for Scale {
+//     fn default() -> Self {
+//         Self([1.0, 1.0])
+//     }
+// }
+//
+// impl Scale {
+//     pub fn x(&self) -> f32 {
+//         self.0[0]
+//     }
+//     pub fn y(&self) -> f32 {
+//         self.0[1]
+//     }
+// }
 
 // {
 //   "nodes": [
@@ -74,7 +74,9 @@ impl Scale {
 #[serde(tag = "type")]
 pub enum IoNode {
     Composition(IoComposition),
-    Image(IoImage),
+    Image {
+        path: String,
+    },
     Shader {
         frag: String,
         vert: String,
@@ -93,36 +95,27 @@ pub enum IoNode {
 
 #[derive(Serialize, Deserialize)]
 pub struct IoNodeWithId {
-    id: usize,
+    pub id: usize,
     #[serde(flatten)]
-    node: IoNode,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum IoValue {
-    Variable {
-        // Exposed key to use to override from outside
-        key: String,
-        // TODO: Introduce Value
-        value: f32,
-    },
-    Link {
-        node_id: usize,
-        key: String,
-    },
-}
-
-#[derive(Default, Serialize, Deserialize)]
-pub struct IoImage {
-    pub path: String,
-    #[serde(default)]
-    pub transform: IoTransform,
+    pub node: IoNode,
 }
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct IoComposition {
-    pub nodes: Vec<IoNode>,
-    #[serde(default)]
-    pub transform: IoTransform,
+    pub nodes: Vec<IoNodeWithId>,
 }
+
+// TODO:
+// #[derive(Serialize, Deserialize)]
+// #[serde(tag = "type", rename_all = "lowercase")]
+// pub enum IoValue {
+//     Variable {
+//         // Exposed key to use to override from outside
+//         key: String,
+//         value: f32,
+//     },
+//     Link {
+//         node_id: usize,
+//         key: String,
+//     },
+// }
