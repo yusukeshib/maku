@@ -5,15 +5,10 @@ The command line utility (for now) accepts a GLSL shader text and an input image
 The command line run on your PC natively, and it's library is build for WASM too.
 And you can run the GLSL testing web app on the demo website of this repo.
 
-The initial goal:
+TODOs:
 
 - Really useful image filter command line tool (Try to keep the implementation very simple)
 - Composable project structure for reusability (Group, Variable)
 - Web UI to edit projects
-
-![Composition design idea](./composition_design_idea.png)
-
-The future goal:
-
 - Machine learning filters
 
