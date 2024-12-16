@@ -1,8 +1,27 @@
 use std::collections::HashMap;
+use std::fmt;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+enum MakuError {
+    #[error("Invalid property_id={0}")]
+    InvalidPropertyId(PropertyId),
+}
 
 type NodeId = usize;
+
 // Ex. (NodeID=12, Key="a")
-type PropertyId = (NodeId, String);
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+struct PropertyId {
+    pub node_id: NodeId,
+    pub key: String,
+}
+
+impl fmt::Display for PropertyId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "PropertyId(node_id={}, key={})", self.node_id, self.key)
+    }
+}
 
 enum NodeInput {
     Add { a: f32, b: f32 },
@@ -89,34 +108,59 @@ impl Maku {
         }
     }
 
-    pub fn link_properties(&mut self, id1: PropertyId, id2: PropertyId) {
-        // TODO: throw Errors
-        let p2 = self.properties.get_mut(&id2).unwrap();
+    pub fn link_properties(&mut self, id1: PropertyId, id2: PropertyId) -> Result<(), MakuError> {
+        let p2 = self
+            .properties
+            .get_mut(&id2)
+            .ok_or(MakuError::InvalidPropertyId(id2))?;
         // TODO: Check property types
         *p2 = Property::Link(id1);
+        Ok(())
     }
 
-    pub fn set_property_value<T>(&mut self, id: PropertyId, value: T)
+    pub fn set_property_value<T>(&mut self, id: PropertyId, value: T) -> Result<(), MakuError>
     where
         T: Into<PropertyValue>,
     {
-        // TODO: throw Errors
-        let p = self.properties.get_mut(&id).unwrap();
+        let p = self
+            .properties
+            .get_mut(&id)
+            .ok_or(MakuError::InvalidPropertyId(id))?;
         *p = Property::Value(value.into());
+        Ok(())
     }
 
     fn add_property(&mut self, node_id: NodeId, key: &str, property: Property) -> PropertyId {
-        let property_id = (node_id, key.to_string());
+        let property_id = PropertyId {
+            node_id,
+            key: key.to_string(),
+        };
         self.properties.insert(property_id.clone(), property);
         property_id
     }
 }
 
-fn main() {
+fn main() -> Result<(), MakuError> {
     let mut maku = Maku::new();
     let node1 = maku.add_node(NodeInput::Add { a: 2.0, b: 4.0 });
-    maku.set_property_value((node1, "b".to_string()), 2.0);
+    maku.set_property_value(
+        PropertyId {
+            node_id: node1,
+            key: "b".to_string(),
+        },
+        2.0,
+    )?;
     let node2 = maku.add_node(NodeInput::Multiply { a: 3.0, b: 5.0 });
-    maku.link_properties((node1, "c".to_string()), (node2, "a".to_string()));
+    maku.link_properties(
+        PropertyId {
+            node_id: node1,
+            key: "c".to_string(),
+        },
+        PropertyId {
+            node_id: node2,
+            key: "a".to_string(),
+        },
+    )?;
     println!("Hello, world!");
+    Ok(())
 }
