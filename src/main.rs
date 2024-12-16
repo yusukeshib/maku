@@ -17,6 +17,15 @@ struct PropertyId {
     pub key: String,
 }
 
+impl From<(NodeId, &str)> for PropertyId {
+    fn from(value: (NodeId, &str)) -> Self {
+        Self {
+            node_id: value.0,
+            key: value.1.to_string(),
+        }
+    }
+}
+
 impl fmt::Display for PropertyId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "PropertyId(node_id={}, key={})", self.node_id, self.key)
@@ -38,6 +47,7 @@ struct Node {
     pub properties: Vec<PropertyId>,
 }
 
+#[allow(dead_code)]
 enum PropertyValue {
     Float(f32),
     Int(i32),
@@ -55,6 +65,7 @@ impl From<i32> for PropertyValue {
     }
 }
 
+#[allow(dead_code)]
 enum Property {
     Value(PropertyValue),
     Link(PropertyId),
@@ -104,15 +115,18 @@ impl Maku {
             for property_id in &node.properties {
                 self.properties.remove(property_id);
             }
+            // TODO: Remove links too
             self.nodes[node_id] = None;
         }
     }
 
+    // Link id1 to id2
     pub fn link_properties(&mut self, id1: PropertyId, id2: PropertyId) -> Result<(), MakuError> {
         let p2 = self
             .properties
             .get_mut(&id2)
             .ok_or(MakuError::InvalidPropertyId(id2))?;
+        // TODO: Output isn't allowed to be
         // TODO: Check property types
         *p2 = Property::Link(id1);
         Ok(())
@@ -131,10 +145,7 @@ impl Maku {
     }
 
     fn add_property(&mut self, node_id: NodeId, key: &str, property: Property) -> PropertyId {
-        let property_id = PropertyId {
-            node_id,
-            key: key.to_string(),
-        };
+        let property_id: PropertyId = (node_id, key).into();
         self.properties.insert(property_id.clone(), property);
         property_id
     }
@@ -143,24 +154,10 @@ impl Maku {
 fn main() -> Result<(), MakuError> {
     let mut maku = Maku::new();
     let node1 = maku.add_node(NodeInput::Add { a: 2.0, b: 4.0 });
-    maku.set_property_value(
-        PropertyId {
-            node_id: node1,
-            key: "b".to_string(),
-        },
-        2.0,
-    )?;
+    maku.set_property_value((node1, "b").into(), 2.0)?;
     let node2 = maku.add_node(NodeInput::Multiply { a: 3.0, b: 5.0 });
-    maku.link_properties(
-        PropertyId {
-            node_id: node1,
-            key: "c".to_string(),
-        },
-        PropertyId {
-            node_id: node2,
-            key: "a".to_string(),
-        },
-    )?;
+    maku.link_properties((node1, "c").into(), (node2, "a").into())?;
+    maku.remove_node(node1);
     println!("Hello, world!");
     Ok(())
 }
