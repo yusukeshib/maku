@@ -1,7 +1,6 @@
 .container {
-  background: #666;
+  background-color: rgba(80, 80, 80, 0.5);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  border-radius: 8px;
   display: flex;
   flex-direction: column;
   position: absolute;
@@ -9,6 +8,6 @@
 }
 
 .header {
-  border-bottom: 1px solid #000;
-  padding: 4px;
+  padding: 4px 8px;
+  background-color: green;
 }

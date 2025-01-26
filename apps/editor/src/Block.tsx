@@ -1,14 +1,14 @@
 import { Property } from './Property'
 import css from './Block.module.css'
 
-export function Block({ label, x, y }: { label: string; x: number; y: number; }) {
+export function Block() {
   return (
-    <div className={css.container} style={{ left: x, top: y }}>
-      <div className={css.header}>{label}</div>
-      <Property label='A' />
-      <Property label='A' />
-      <Property label='A' />
-      <Property label='A' />
+    <div className={css.container} style={{ left: 100, top: 200 }}>
+      <div className={css.header}>Math</div>
+      <Property />
+      <Property />
+      <Property />
+      <Property />
     </div>
   )
 }
