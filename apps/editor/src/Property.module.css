@@ -26,18 +26,10 @@
   height: 8px;
   border-radius: 8px;
   border: 1px solid black;
-  background-color: green;
+  background-color: red;
 }
 
 .label {
   flex: 1;
 }
 
-.input {
-  width: 20px;
-  background: none;
-  border: none;
-  color: white;
-  font-family: menlo, monospace;
-  font-size: 0.9em;
-}
