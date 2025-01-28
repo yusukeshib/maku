@@ -1,29 +1,60 @@
-import { useStore, createStore } from 'zustand'
+import { useStore, createStore, ExtractState } from 'zustand'
+import invariant from 'tiny-invariant';
+import { combine } from 'zustand/middleware';
 
 interface AppProps {
-  count: number
-}
-
-interface AppState extends AppProps {
-  plus: () => void
-  minus: () => void
+  project: Project;
 }
 
 export type AppStore = ReturnType<typeof createAppStore>
 
 const createAppStore = () => {
   const initial: AppProps = {
-    count: 0,
+    project: { blocks: [], nodes: {} }
   }
-  return createStore<AppState>()((set) => ({
-    ...initial,
-    plus: () => set((state) => ({ count: state.count + 1 })),
-    minus: () => set((state) => ({ count: state.count -1 })),
-  }))
+  return createStore(combine(initial, (set, ) => ({
+    move: (id: NodeId, pos: Point) => {
+      set((state) => {
+        const block = state.project.nodes[id];
+        invariant(block.type === 'block');
+        return { project: {
+          ...state.project,
+          nodes: { ...state.project.nodes, [id]: { ...block, pos } }
+        }}
+      });
+    }
+  })));
 }
 
-export const editorStore = createAppStore();
+export const appStore = createAppStore();
+
+type AppState = ExtractState<typeof appStore>;
 
 export function useAppStore<R>(selector: (state: AppState) => R): R {
-  return useStore(editorStore, selector);
+  return useStore(appStore, selector);
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+type NodeId = string;
+type Node = Block|Property;
+
+interface Block {
+  type: 'block';
+  pos: Point;
+  properties: NodeId[];
+}
+
+interface Property {
+  type: 'property';
+  key: string;
+  value: number;
+}
+
+interface Project {
+  blocks: NodeId[];
+  nodes: Record<NodeId, Node>;
 }
