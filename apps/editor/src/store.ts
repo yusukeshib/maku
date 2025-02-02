@@ -1,6 +1,7 @@
 import { useStore, createStore, ExtractState } from 'zustand'
 import invariant from 'tiny-invariant';
 import { combine } from 'zustand/middleware';
+import { produce } from 'immer'
 
 interface AppProps {
   project: Project;
@@ -14,14 +15,12 @@ const createAppStore = () => {
   }
   return createStore(combine(initial, (set, ) => ({
     move: (id: NodeId, pos: Point) => {
-      set((state) => {
+      set((state) => produce(state, state => {
         const block = state.project.nodes[id];
         invariant(block.type === 'block');
-        return { project: {
-          ...state.project,
-          nodes: { ...state.project.nodes, [id]: { ...block, pos } }
-        }}
-      });
+
+        block.pos = pos;
+      }));
     }
   })));
 }
