@@ -10,6 +10,7 @@ export type Node = Block|Property;
 
 export interface Block {
   type: 'block';
+  blockType: BlockType;
   pos: Point;
   properties: NodeId[];
 }

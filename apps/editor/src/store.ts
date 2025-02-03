@@ -22,6 +22,7 @@ const createAppStore = () => {
       set((state) => produce(state, state => {
         const block: Block = {
           type: 'block',
+          blockType:type,
           pos: { x:0,y:0},
           properties: [],
         }
@@ -48,12 +49,13 @@ const createAppStore = () => {
         state.project.nodes[id] = null;
       }));
     },
-    moveBlock: (id: NodeId, pos: Point) => {
+    moveBlock: (id: NodeId, delta: Point) => {
       set((state) => produce(state, state => {
         const block = state.project.nodes[id];
         invariant(block?.type === 'block', 'invalid-block-id');
 
-        block.pos = pos;
+        block.pos.x += delta.x;
+        block.pos.y += delta.y;
       }));
     },
     setPropertyValue: (id: NodeId, value: number) => {

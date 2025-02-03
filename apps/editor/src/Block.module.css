@@ -13,6 +13,11 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  cursor: grab;
+}
+
+.header[data-dragging=true] {
+  cursor: grabbing;
 }
 
 .name {
