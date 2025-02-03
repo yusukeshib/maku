@@ -10,4 +10,15 @@
 .header {
   padding: 4px 8px;
   background-color: green;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.name {
+  flex: 1;
+}
+
+.close {
+  cursor: pointer;
 }

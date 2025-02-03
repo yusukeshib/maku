@@ -74,3 +74,7 @@ export function useAppStore<R>(selector: (state: AppState) => R): R {
   return useStore(appStore, selector);
 }
 
+export function getAppStore() {
+  return appStore.getState();
+}
+
