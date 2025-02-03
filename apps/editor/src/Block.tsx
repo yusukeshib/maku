@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Property } from './Property'
 import css from './Block.module.css'
 import { Point, type NodeId } from './project'
@@ -5,7 +6,7 @@ import { getAppStore, useAppStore } from './store'
 import invariant from 'tiny-invariant'
 import { RefObject, useEffect, useRef, useState } from 'react'
 
-export function Block({ blockId }: { blockId: NodeId }) {
+export const Block = memo(function Block({ blockId }: { blockId: NodeId }) {
   const block = useAppStore(s => {
     const node = s.project.nodes[blockId]
     invariant(node?.type === 'block', 'invalid-node-type')
@@ -33,7 +34,7 @@ export function Block({ blockId }: { blockId: NodeId }) {
       ))}
     </div>
   )
-}
+})
 
 function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Point] {
   const [delta, setDelta] = useState<Point>({ x: 0, y: 0 });
@@ -56,7 +57,7 @@ function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Poi
     function handleMove(evt: PointerEvent) {
       invariant(start, '');
       const p = { x: evt.clientX, y: evt.clientY}
-      setDelta({ x: p.x-start.x, y: p.y-start.y });
+      setDelta({ x: Math.round(p.x-start.x), y: Math.round(p.y-start.y) });
     }
 
     function handleCancel() {
@@ -69,7 +70,7 @@ function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Poi
     function handleUp(evt: PointerEvent) {
       invariant(start, '');
       const p = { x: evt.clientX, y: evt.clientY}
-      const delta = { x: p.x-start.x, y: p.y-start.y };
+      const delta = { x: Math.round(p.x-start.x), y: Math.round(p.y-start.y) };
       getAppStore().moveBlock(blockId, delta);
 
       handleCancel();

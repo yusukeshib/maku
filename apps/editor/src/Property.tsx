@@ -1,10 +1,11 @@
+import { memo } from 'react'
 import css from './Property.module.css'
 import { NumberInput } from './NumberInput'
 import { NodeId } from './project';
 import { useAppStore } from './store';
 import invariant from 'tiny-invariant';
 
-export function Property({ propId }: { propId: NodeId }) {
+export const Property = memo(function Property({ propId }: { propId: NodeId }) {
   const setValue = useAppStore(s => s.setPropertyValue);
   const prop = useAppStore(s => {
     const node = s.project.nodes[propId]
@@ -24,7 +25,6 @@ export function Property({ propId }: { propId: NodeId }) {
       <NumberInput value={prop.value} onChange={handleChange} />
     </div>
   )
-
-}
+})
 
 
