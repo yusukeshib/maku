@@ -55,7 +55,14 @@ const createAppStore = () => {
 
         block.pos = pos;
       }));
-    }
+    },
+    setPropertyValue: (id: NodeId, value: number) => {
+      set((state) => produce(state, state => {
+        const prop= state.project.nodes[id];
+        invariant(prop?.type === 'property', 'invalid-property-id');
+        prop.value = value;
+      }));
+    },
   })));
 }
 

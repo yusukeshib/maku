@@ -1,18 +1,27 @@
-import { useState } from 'react';
 import css from './Property.module.css'
 import { NumberInput } from './NumberInput'
+import { NodeId } from './project';
+import { useAppStore } from './store';
+import invariant from 'tiny-invariant';
 
-export function Property() {
-  const [value, setValue] = useState(0)
+export function Property({ propId }: { propId: NodeId }) {
+  const setValue = useAppStore(s => s.setPropertyValue);
+  const prop = useAppStore(s => {
+    const node = s.project.nodes[propId]
+    invariant(node?.type === 'property', 'invalid-node-type')
+    return node;
+  })
+
   const handleChange = (value: number) => {
-    setValue(value)
+    setValue(propId, value);
   }
+
   return (
     <div className={css.container}>
-      <div className={css.label}>Opacity</div>
+      <div className={css.label}>{prop.key}</div>
       <div className={css.dotIn} />
       <div className={css.dotOut} />
-      <NumberInput value={value} onChange={handleChange} />
+      <NumberInput value={prop.value} onChange={handleChange} />
     </div>
   )
 

@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, type ChangeEvent, useState } from 'react';
 import css from './NumberInput.module.css'
 
 const precision = 2;
