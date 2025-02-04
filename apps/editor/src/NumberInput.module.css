@@ -8,3 +8,6 @@
   font-size: 0.9em;
 }
 
+.input[disabled] {
+  opacity: 0.5;
+}

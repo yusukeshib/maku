@@ -16,7 +16,7 @@ function parse(str: string): number {
   return parseFloat(str)
 }
 
-export function NumberInput({ value, onChange }: { value: number; onChange: (value: number) => void; }) {
+export function NumberInput({ disabled, value, onChange }: { disabled?: boolean; value: number; onChange: (value: number) => void; }) {
   const [internalValue, setInternalValue] = useState(format(value))
 
   const handleChange = (evt: ChangeEvent<HTMLInputElement>) => {
@@ -35,30 +35,38 @@ export function NumberInput({ value, onChange }: { value: number; onChange: (val
 
   function handleKeyDown(evt: KeyboardEvent<HTMLInputElement>) {
     switch(evt.code) {
-    case 'Enter':
-    case 'Escape':
+      case 'Enter':
+      case 'Escape':
       {
-        evt.currentTarget.blur();
-      }
-      break;
-    case 'ArrowUp':
+          evt.currentTarget.blur();
+        }
+        break;
+      case 'ArrowUp':
       {
-        const newValue = value + (evt.shiftKey ? 10 : 1)/base;
-        setInternalValue(format(newValue))
-        onChange(newValue);
-      }
-      break
-    case 'ArrowDown':
+          const newValue = value + (evt.shiftKey ? 10 : 1)/base;
+          setInternalValue(format(newValue))
+          onChange(newValue);
+        }
+        break
+      case 'ArrowDown':
       {
-        const newValue = value - (evt.shiftKey ? 10 : 1)/base;
-        setInternalValue(format(newValue))
-        onChange(newValue);
-      }
-      break
+          const newValue = value - (evt.shiftKey ? 10 : 1)/base;
+          setInternalValue(format(newValue))
+          onChange(newValue);
+        }
+        break
     } 
   }
 
   return (
-    <input onKeyDown={handleKeyDown} onBlur={handleBlur} className={css.input} type='text' value={internalValue} onChange={handleChange} />
+    <input
+      disabled={disabled}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+      className={css.input}
+      type='text'
+      value={internalValue}
+      onChange={handleChange}
+    />
   )
 }
