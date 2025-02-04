@@ -1,4 +1,5 @@
 import { keyBy } from 'lodash-es'
+import invariant from 'tiny-invariant';
 
 export interface Point {
   x: number;
@@ -9,14 +10,15 @@ export type NodeId = number;
 export type Node = Block|Property;
 
 export interface Block {
-  type: 'block';
-  blockType: BlockType;
+  ty: 'block';
+  type: BlockType;
   pos: Point;
   properties: NodeId[];
 }
 
 export interface Property {
-  type: 'property';
+  ty: 'property';
+  blockId: NodeId;
   key: string;
   value: number;
 }
@@ -55,4 +57,16 @@ const blockDefs: BlockDef[] = [
  }
 ];
 
-export const blockDefMap = keyBy(blockDefs, 'type');
+const blockDefMap = keyBy(blockDefs, 'type');
+
+export function getBlockDef(type: BlockType) {
+  return blockDefMap[type];
+}
+
+export function getPropDef(type: BlockType, key: string) {
+  const block = getBlockDef(type);
+  const prop = block.props.find(p => p.key === key);
+  invariant(prop, 'invalid-prop-key');
+  return prop;
+}
+

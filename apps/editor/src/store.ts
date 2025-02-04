@@ -2,7 +2,7 @@ import { useStore, createStore, ExtractState } from 'zustand'
 import invariant from 'tiny-invariant';
 import { combine } from 'zustand/middleware';
 import { produce } from 'immer'
-import { blockDefMap, type Block, type BlockType, type Project, defaultProject, type NodeId, type Point, Property } from './project'
+import { getBlockDef, type Block, type BlockType, type Project, defaultProject, type NodeId, type Point, Property } from './project'
 
 interface AppProps {
   project: Project;
@@ -16,19 +16,24 @@ const createAppStore = () => {
   }
   return createStore(combine(initial, (set, ) => ({
     addBlock: (type: BlockType) => {
-      const def = blockDefMap[type]
+      const def = getBlockDef(type);
       invariant(def, 'invalid-block-type');
 
       set((state) => produce(state, state => {
         const block: Block = {
-          type: 'block',
-          blockType:type,
+          ty: 'block',
+          type,
           pos: { x:0,y:0},
           properties: [],
         }
+        const blockId = state.project.nodes.length;
+        state.project.nodes[blockId] = block;
+        state.project.blocks.push(blockId);
+
         for(const p of def.props) {
           const prop: Property = {
-            type: 'property',
+            ty: 'property',
+            blockId,
             key: p.key,
             value: p.defaultValue,
           }
@@ -36,9 +41,6 @@ const createAppStore = () => {
           state.project.nodes[propId] = prop;
           block.properties.push(propId);
         }
-        const blockId = state.project.nodes.length;
-        state.project.nodes[blockId] = block;
-        state.project.blocks.push(blockId);
       }));
     },
     removeBlock: (id: NodeId) => {
@@ -52,7 +54,7 @@ const createAppStore = () => {
     moveBlock: (id: NodeId, delta: Point) => {
       set((state) => produce(state, state => {
         const block = state.project.nodes[id];
-        invariant(block?.type === 'block', 'invalid-block-id');
+        invariant(block?.ty === 'block', 'invalid-block-id');
 
         block.pos.x += delta.x;
         block.pos.y += delta.y;
@@ -61,7 +63,7 @@ const createAppStore = () => {
     setPropertyValue: (id: NodeId, value: number) => {
       set((state) => produce(state, state => {
         const prop= state.project.nodes[id];
-        invariant(prop?.type === 'property', 'invalid-property-id');
+        invariant(prop?.ty === 'property', 'invalid-property-id');
         prop.value = value;
       }));
     },
