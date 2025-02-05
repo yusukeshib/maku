@@ -4,6 +4,7 @@ import { NumberInput } from './NumberInput'
 import { getPropDef, NodeId } from './project';
 import { useAppStore } from './store';
 import invariant from 'tiny-invariant';
+import { useDrag, useDrop } from 'react-dnd'
 
 export const Property = memo(function Property({ propId }: { propId: NodeId }) {
   const setValue = useAppStore(s => s.setPropertyValue);
@@ -27,11 +28,45 @@ export const Property = memo(function Property({ propId }: { propId: NodeId }) {
   return (
     <div className={css.container}>
       <div className={css.label}>{prop.key}</div>
-      {def.cat === 'input' && <div className={css.dotIn} /> }
-      {def.cat === 'output' && <div className={css.dotOut} />}
+      {def.cat === 'input' && <Input propId={propId} /> }
+      {def.cat === 'output' && <Output propId={propId} />}
       <NumberInput disabled={def.cat === 'output'} value={prop.value} onChange={handleChange} />
     </div>
   )
 })
 
+function Input({ propId }: { propId: NodeId }) {
+  const [{ canDrop: _, isOver }, ref] = useDrop(() => ({
+    accept: 'property',
+    drop: () => ({ propId }),
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  }))
+  return (
+    <div data-over={isOver} ref={ref} className={css.dotIn} />
+  )
+}
 
+function Output({ propId }: { propId: NodeId }) {
+  const link = useAppStore(s => s.linkProperties);
+  const [{ isDragging }, ref] = useDrag(() => ({
+    type: 'property',
+    item: { propId, },
+    end: (from , monitor) => {
+      const to = monitor.getDropResult<{ propId: NodeId }>()
+      if (from && to) {
+        link(from.propId, to.propId);
+      }
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+      handlerId: monitor.getHandlerId(),
+    }),
+  }))
+
+  return (
+    <div data-dragging={isDragging} ref={ref} className={css.dotOut} />
+  )
+}

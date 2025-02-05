@@ -83,7 +83,7 @@ function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Poi
     return () => {
       elem.removeEventListener('pointerdown', handleDown);
     }
-  }, [ref]);
+  }, [blockId, ref]);
 
   return [dragging, delta];
 }

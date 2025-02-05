@@ -6,7 +6,8 @@
   position: relative;
   padding: 4px 12px;
   gap: 8px;
-  height: 20px;
+  height: 24px;
+  box-sizing: border-box;
 }
 
 .dotIn {
@@ -16,7 +17,7 @@
   height: 8px;
   border-radius: 8px;
   border: 1px solid black;
-  background-color: yellow;
+  background-color: gray;
 }
 
 .dotOut  {
@@ -26,7 +27,7 @@
   height: 8px;
   border-radius: 8px;
   border: 1px solid black;
-  background-color: red;
+  background-color: gray;
 }
 
 .label {

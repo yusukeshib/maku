@@ -8,7 +8,9 @@
 }
 
 .header {
-  padding: 4px 8px;
+  padding: 0 8px;
+  height: 24px;
+  box-sizing: border-box;
   background-color: green;
   display: flex;
   flex-direction: row;

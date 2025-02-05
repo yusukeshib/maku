@@ -21,6 +21,7 @@ export interface Property {
   blockId: NodeId;
   key: string;
   value: number;
+  link: NodeId|null;
 }
 
 export interface Project {
