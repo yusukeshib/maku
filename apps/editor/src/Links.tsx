@@ -41,6 +41,8 @@ const Link = memo(function Link({ propId: toId }: { propId: NodeId; }) {
     invariant(toBlock?.ty === 'block');
     const toPropIndex = toBlock.properties.indexOf(toId);
 
+    const toDelta = s.editing.dragging?.blockId === toProp.blockId ? s.editing.dragging.delta : { x: 0, y: 0 };
+
     const fromId = toProp.link;
     invariant(fromId);
 
@@ -50,11 +52,13 @@ const Link = memo(function Link({ propId: toId }: { propId: NodeId; }) {
     invariant(fromBlock?.ty === 'block');
     const fromPropIndex = fromBlock.properties.indexOf(fromId);
 
+    const fromDelta = s.editing.dragging?.blockId === fromProp.blockId ? s.editing.dragging.delta : { x: 0, y: 0 };
+
     return {
-      x1: fromBlock.pos.x + BLOCK_WIDTH,
-      y1: fromBlock.pos.y + (fromPropIndex + 1.5) * PROPERTY_HEIGHT,
-      x2: toBlock.pos.x,
-      y2: toBlock.pos.y + (toPropIndex + 1.5) * PROPERTY_HEIGHT,
+      x1: fromBlock.pos.x + fromDelta.x + BLOCK_WIDTH,
+      y1: fromBlock.pos.y + fromDelta.y + (fromPropIndex + 1.5) * PROPERTY_HEIGHT,
+      x2: toBlock.pos.x + toDelta.x,
+      y2: toBlock.pos.y + toDelta.y + (toPropIndex + 1.5) * PROPERTY_HEIGHT,
     }
   });
   return <line className={css.line} x1={x1} y1={y1} x2={x2} y2={y2} />

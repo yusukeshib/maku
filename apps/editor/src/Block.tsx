@@ -4,7 +4,7 @@ import css from './Block.module.css'
 import { Point, type NodeId } from './project'
 import { getAppStore, useAppStore } from './store'
 import invariant from 'tiny-invariant'
-import { RefObject, useEffect, useRef, useState } from 'react'
+import { RefObject, useEffect, useRef, } from 'react'
 
 export const Block = memo(function Block({ blockId }: { blockId: NodeId }) {
   const block = useAppStore(s => {
@@ -37,8 +37,14 @@ export const Block = memo(function Block({ blockId }: { blockId: NodeId }) {
 })
 
 function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Point] {
-  const [delta, setDelta] = useState<Point>({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
+  const delta = useAppStore(s => {
+    if(s.editing.dragging?.blockId === blockId) {
+      return s.editing.dragging.delta
+    } else {
+      return { x: 0, y:0 }
+    }
+  });
+  const dragging = useAppStore(s => s.editing.dragging?.blockId === blockId);
 
   useEffect(() => {
     const elem = ref.current;
@@ -52,31 +58,30 @@ function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Poi
       document.body.addEventListener('pointercancel', handleCancel);
       document.body.addEventListener('pointerup', handleUp);
       start = { x: evt.clientX, y: evt.clientY}
-      setDragging(true);
+      getAppStore().start(blockId);
     }
 
     function handleMove(evt: PointerEvent) {
       evt.preventDefault();
       invariant(start, '');
       const p = { x: evt.clientX, y: evt.clientY}
-      setDelta({ x: Math.round(p.x-start.x), y: Math.round(p.y-start.y) });
+      const delta = { x: Math.round(p.x-start.x), y: Math.round(p.y-start.y) };
+      getAppStore().move(blockId, delta);
     }
 
     function handleCancel() {
+      getAppStore().cancel();
+
       document.body.removeEventListener('pointermove', handleMove);
       document.body.removeEventListener('pointerup', handleUp);
-      setDelta({x: 0, y: 0});
-      setDragging(false);
     }
 
     function handleUp(evt: PointerEvent) {
       evt.preventDefault();
-      invariant(start, '');
-      const p = { x: evt.clientX, y: evt.clientY}
-      const delta = { x: Math.round(p.x-start.x), y: Math.round(p.y-start.y) };
-      getAppStore().moveBlock(blockId, delta);
+      getAppStore().commit();
 
-      handleCancel();
+      document.body.removeEventListener('pointermove', handleMove);
+      document.body.removeEventListener('pointerup', handleUp);
     }
 
     elem.addEventListener('pointerdown', handleDown);

@@ -7,6 +7,11 @@ import { useShallow } from 'zustand/shallow';
 
 interface AppProps {
   project: Project;
+  editing: Editing;
+}
+
+interface Editing {
+  dragging: { blockId: NodeId; delta: Point }|null;
 }
 
 export type AppStore = ReturnType<typeof createAppStore>
@@ -14,6 +19,9 @@ export type AppStore = ReturnType<typeof createAppStore>
 const createAppStore = () => {
   const initial: AppProps = {
     project: defaultProject,
+    editing: {
+      dragging: null,
+    }
   }
   return createStore(combine(initial, (set, _get) => ({
     addBlock: (type: BlockType) => {
@@ -61,13 +69,33 @@ const createAppStore = () => {
         state.project.nodes[id] = null;
       }));
     },
-    moveBlock: (id: NodeId, delta: Point) => {
+    start: (id: NodeId) => {
       set((state) => produce(state, state => {
-        const block = state.project.nodes[id];
+        state.editing.dragging = { blockId: id, delta: { x: 0, y: 0 }};
+      }));
+    },
+    move: (_id: NodeId, delta: Point) => {
+      set((state) => produce(state, state => {
+        invariant(state.editing.dragging);
+        state.editing.dragging.delta = delta;
+      }));
+    },
+    cancel: () => {
+      set((state) => produce(state, state => {
+        invariant(state.editing.dragging);
+        state.editing.dragging = null;
+      }));
+    },
+    commit: () => {
+      set((state) => produce(state, state => {
+        invariant(state.editing.dragging);
+        const block = state.project.nodes[state.editing.dragging.blockId];
         invariant(block?.ty === 'block', 'invalid-block-id');
 
-        block.pos.x += delta.x;
-        block.pos.y += delta.y;
+        block.pos.x += state.editing.dragging.delta.x;
+        block.pos.y += state.editing.dragging.delta.y;
+
+        state.editing.dragging = null;
       }));
     },
     linkProperties: (inputId: NodeId, outputId: NodeId) => {
