@@ -105,6 +105,13 @@ const createAppStore = () => {
         }));
       },
     },
+    unlinkProperty: (outputId: NodeId) => {
+      set((state) => produce(state, state => {
+        const output = state.project.nodes[outputId];
+        invariant(output?.ty === 'property', 'invalid-output-property-id');
+        output.link = null;
+      }));
+    },
     linkProperties: (inputId: NodeId, outputId: NodeId) => {
       set((state) => produce(state, state => {
         const input = state.project.nodes[inputId];

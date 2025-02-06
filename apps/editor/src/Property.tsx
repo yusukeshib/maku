@@ -30,10 +30,21 @@ export const Property = memo(function Property({ propId }: { propId: NodeId }) {
       <div className={css.label}>{prop.key}</div>
       {def.cat === 'input' && <Input propId={propId} /> }
       {def.cat === 'output' && <Output propId={propId} />}
+      {prop.link && <UnlinkButton propId={propId} /> }
       <NumberInput disabled={def.cat === 'output'} value={prop.value} onChange={handleChange} />
     </div>
   )
 })
+
+function UnlinkButton({ propId }: { propId: NodeId }) {
+  const handleClick = () => {
+    getAppStore().unlinkProperty(propId)
+  }
+
+  return (
+    <div onClick={handleClick} className={css.unlinkButton} />
+  )
+}
 
 function Input({ propId }: { propId: NodeId }) {
   const [{ canDrop: _, isOver }, ref] = useDrop(() => ({
