@@ -12,6 +12,7 @@ interface AppProps {
 
 interface Editing {
   dragging: { blockId: NodeId; delta: Point }|null;
+  linking: { propId: NodeId; point: Point }|null;
 }
 
 export type AppStore = ReturnType<typeof createAppStore>
@@ -21,6 +22,7 @@ const createAppStore = () => {
     project: defaultProject,
     editing: {
       dragging: null,
+      linking: null,
     }
   }
   return createStore(combine(initial, (set, _get) => ({
@@ -61,6 +63,15 @@ const createAppStore = () => {
         const block = state.project.nodes[id];
         invariant(block?.ty === 'block', 'invalid-block-id');
 
+        // Unset property links for these properties
+        const props = new Set(block.properties)
+        for(const node of state.project.nodes) {
+          if(node?.ty !== 'property') continue
+          if(node.link !== null && props.has(node.link)) {
+            node.link = null;
+          }
+        }
+
         for(const id of block.properties) {
           state.project.nodes[id] = null;
         }
@@ -69,34 +80,30 @@ const createAppStore = () => {
         state.project.nodes[id] = null;
       }));
     },
-    start: (id: NodeId) => {
-      set((state) => produce(state, state => {
-        state.editing.dragging = { blockId: id, delta: { x: 0, y: 0 }};
-      }));
-    },
-    move: (_id: NodeId, delta: Point) => {
-      set((state) => produce(state, state => {
-        invariant(state.editing.dragging);
-        state.editing.dragging.delta = delta;
-      }));
-    },
-    cancel: () => {
-      set((state) => produce(state, state => {
-        invariant(state.editing.dragging);
-        state.editing.dragging = null;
-      }));
-    },
-    commit: () => {
-      set((state) => produce(state, state => {
-        invariant(state.editing.dragging);
-        const block = state.project.nodes[state.editing.dragging.blockId];
-        invariant(block?.ty === 'block', 'invalid-block-id');
+    moveBlock: {
+      start: (id: NodeId) => {
+        set((state) => produce(state, state => {
+          state.editing.dragging = { blockId: id, delta: { x: 0, y: 0 }};
+        }));
+      },
+      move: (_id: NodeId, delta: Point) => {
+        set((state) => produce(state, state => {
+          invariant(state.editing.dragging);
+          state.editing.dragging.delta = delta;
+        }));
+      },
+      commit: () => {
+        set((state) => produce(state, state => {
+          invariant(state.editing.dragging);
+          const block = state.project.nodes[state.editing.dragging.blockId];
+          invariant(block?.ty === 'block', 'invalid-block-id');
 
-        block.pos.x += state.editing.dragging.delta.x;
-        block.pos.y += state.editing.dragging.delta.y;
+          block.pos.x += state.editing.dragging.delta.x;
+          block.pos.y += state.editing.dragging.delta.y;
 
-        state.editing.dragging = null;
-      }));
+          state.editing.dragging = null;
+        }));
+      },
     },
     linkProperties: (inputId: NodeId, outputId: NodeId) => {
       set((state) => produce(state, state => {

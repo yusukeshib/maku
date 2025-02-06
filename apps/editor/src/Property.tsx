@@ -2,7 +2,7 @@ import { memo } from 'react'
 import css from './Property.module.css'
 import { NumberInput } from './NumberInput'
 import { getPropDef, NodeId } from './project';
-import { useAppStore } from './store';
+import { getAppStore, useAppStore } from './store';
 import invariant from 'tiny-invariant';
 import { useDrag, useDrop } from 'react-dnd'
 
@@ -50,14 +50,13 @@ function Input({ propId }: { propId: NodeId }) {
 }
 
 function Output({ propId }: { propId: NodeId }) {
-  const link = useAppStore(s => s.linkProperties);
   const [{ isDragging }, ref] = useDrag(() => ({
     type: 'property',
     item: { propId, },
     end: (from , monitor) => {
       const to = monitor.getDropResult<{ propId: NodeId }>()
       if (from && to) {
-        link(from.propId, to.propId);
+        getAppStore().linkProperties(from.propId, to.propId);
       }
     },
     collect: (monitor) => ({

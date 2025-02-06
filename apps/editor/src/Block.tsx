@@ -57,7 +57,7 @@ function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Poi
       document.body.addEventListener('pointermove', handleMove);
       document.body.addEventListener('pointerup', handleUp);
       start = { x: evt.clientX, y: evt.clientY}
-      getAppStore().start(blockId);
+      getAppStore().moveBlock.start(blockId);
     }
 
     function handleMove(evt: PointerEvent) {
@@ -65,13 +65,13 @@ function useDrag(blockId: NodeId, ref: RefObject<HTMLDivElement>): [boolean, Poi
       invariant(start, '');
       const p = { x: evt.clientX, y: evt.clientY}
       const delta = { x: Math.round(p.x-start.x), y: Math.round(p.y-start.y) };
-      getAppStore().move(blockId, delta);
+      getAppStore().moveBlock.move(blockId, delta);
     }
 
     function handleUp(evt: PointerEvent) {
       evt.preventDefault();
       if(start) {
-        getAppStore().commit();
+        getAppStore().moveBlock.commit();
         document.body.removeEventListener('pointermove', handleMove);
         document.body.removeEventListener('pointerup', handleUp);
         start = null;
