@@ -34,7 +34,7 @@ export const defaultProject: Project = {
   nodes: [],
 }
 
-export type BlockType = 'add';
+export type BlockType = 'add'|'multiply';
 
 export interface BlockDef {
   type: BlockType;
@@ -47,9 +47,21 @@ export interface PropDef {
   defaultValue: number;
 }
 
-const blockDefs: BlockDef[] = [
+export function isBlockType(ty: string): ty is BlockType {
+  return !!blockDefs.find(def => def.type === ty);
+}
+
+export const blockDefs: BlockDef[] = [
  {
    type: 'add',
+   props: [
+     { key: 'a', defaultValue: 1, cat: 'input', },
+     { key: 'b', defaultValue: 2, cat: 'input', },
+     { key: 'c', defaultValue: 3, cat: 'output', },
+   ]
+ },
+ {
+   type: 'multiply',
    props: [
      { key: 'a', defaultValue: 1, cat: 'input', },
      { key: 'b', defaultValue: 2, cat: 'input', },
