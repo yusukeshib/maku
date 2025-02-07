@@ -12,7 +12,6 @@ interface AppProps {
 
 interface Editing {
   dragging: { blockId: NodeId; delta: Point }|null;
-  linking: { propId: NodeId; point: Point }|null;
 }
 
 export type AppStore = ReturnType<typeof createAppStore>
@@ -22,7 +21,6 @@ const createAppStore = () => {
     project: defaultProject,
     editing: {
       dragging: null,
-      linking: null,
     }
   }
   return createStore(combine(initial, (set, _get) => ({
@@ -31,10 +29,21 @@ const createAppStore = () => {
       invariant(def, 'invalid-block-type');
 
       set((state) => produce(state, state => {
+
+        const prevId = state.project.blocks.at(-1);
+        let pos;
+        if(prevId !== undefined) {
+          const prev = state.project.nodes[prevId];
+          invariant(prev?.ty === 'block');
+          pos = {x:prev.pos.x + 300, y: prev.pos.y }
+        } else {
+          pos = {x:100, y: 100 }
+        }
+
         const block: Block = {
           ty: 'block',
           type,
-          pos: { x:0,y:0},
+          pos,
           properties: [],
         }
         const blockId = state.project.nodes.length;
