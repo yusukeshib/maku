@@ -3,6 +3,7 @@ import { NodeId } from "./project";
 import { useAppStore } from "./store";
 import invariant from "tiny-invariant";
 import css from './Links.module.css'
+import { useDragLayer } from 'react-dnd'
 
 const BLOCK_WIDTH = 200;
 const PROPERTY_HEIGHT = 24;
@@ -30,6 +31,7 @@ export function Links() {
       {links.map((id) => (
         <Link key={id} propId={id} />
       ))}
+      <DraggingLink/>
     </svg>
   )
 }
@@ -65,6 +67,19 @@ const Link = memo(function Link({ propId: toId }: { propId: NodeId; }) {
   return <line className={css.line} x1={x1} y1={y1} x2={x2} y2={y2} />
 })
 
+function DraggingLink() {
+  const { isDragging, start ,end } = useDragLayer(
+    monitor => ({
+      isDragging: monitor.isDragging(),
+      start: monitor.getInitialClientOffset(),
+      end: monitor.getClientOffset(),
+    })
+  )
+
+  if(!isDragging || !start || !end) return null;
+
+  return <line className={css.line} x1={start.x} y1={start.y} x2={end.x} y2={end.y} />
+}
 
 function useWindowSize() {
   const [dimensions, setDimensions] = useState<[number, number]>([0,0]);
