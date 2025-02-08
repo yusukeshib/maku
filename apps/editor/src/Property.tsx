@@ -31,7 +31,7 @@ export const Property = memo(function Property({ propId }: { propId: NodeId }) {
       {def.cat === 'input' && <Input propId={propId} /> }
       {def.cat === 'output' && <Output propId={propId} />}
       {prop.link && <UnlinkButton propId={propId} /> }
-      <NumberInput disabled={def.cat === 'output'} value={prop.value} onChange={handleChange} />
+      <NumberInput step={0.1} disabled={def.cat === 'output'} value={prop.value} onChange={handleChange} />
     </div>
   )
 })
