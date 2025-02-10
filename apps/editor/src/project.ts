@@ -20,7 +20,7 @@ export interface Property {
   ty: 'property';
   blockId: NodeId;
   key: string;
-  value: number;
+  value: Value;
   link: NodeId|null;
 }
 
@@ -34,7 +34,7 @@ export const defaultProject: Project = {
   nodes: [],
 }
 
-export type BlockType = 'add'|'multiply';
+export type BlockType = 'add'|'multiply'|'concat';
 
 export interface BlockDef {
   type: BlockType;
@@ -44,8 +44,12 @@ export interface BlockDef {
 export interface PropDef {
   key: string;
   cat: 'input'|'output';
-  defaultValue: number;
+  defaultValue: Value;
 }
+
+export type Value = 
+| { type: 'number'; value: number }
+| { type: 'string'; value: string }
 
 export function isBlockType(ty: string): ty is BlockType {
   return !!blockDefs.find(def => def.type === ty);
@@ -55,17 +59,25 @@ export const blockDefs: BlockDef[] = [
  {
    type: 'add',
    props: [
-     { key: 'a', defaultValue: 1, cat: 'input', },
-     { key: 'b', defaultValue: 2, cat: 'input', },
-     { key: 'c', defaultValue: 3, cat: 'output', },
+     { key: 'a', defaultValue: { type: 'number', value: 1 }, cat: 'input', },
+     { key: 'b', defaultValue: { type: 'number', value: 2 }, cat: 'input', },
+     { key: 'c', defaultValue: { type: 'number', value: 3 }, cat: 'output', },
    ]
  },
  {
    type: 'multiply',
    props: [
-     { key: 'a', defaultValue: 1, cat: 'input', },
-     { key: 'b', defaultValue: 2, cat: 'input', },
-     { key: 'c', defaultValue: 3, cat: 'output', },
+     { key: 'a', defaultValue: { type: 'number', value: 1 }, cat: 'input', },
+     { key: 'b', defaultValue: { type: 'number', value: 2 }, cat: 'input', },
+     { key: 'c', defaultValue: { type: 'number', value: 3 }, cat: 'output', },
+   ]
+ },
+ {
+   type: 'concat',
+   props: [
+     { key: 'a', defaultValue: { type: 'string', value: 'hello' }, cat: 'input', },
+     { key: 'b', defaultValue: { type: 'string', value: 'yusuke' }, cat: 'input', },
+     { key: 'c', defaultValue: { type: 'string', value: 'helloyusuke' }, cat: 'output', },
    ]
  }
 ];

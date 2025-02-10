@@ -2,7 +2,17 @@ import { useStore, createStore, ExtractState } from 'zustand'
 import invariant from 'tiny-invariant';
 import { combine } from 'zustand/middleware';
 import { produce } from 'immer'
-import { getBlockDef, type Block, type BlockType, type Project, defaultProject, type NodeId, type Point, Property } from './project'
+import { 
+  getBlockDef,
+  type Value,
+  type Block,
+  type BlockType,
+  type Project,
+  defaultProject,
+  type NodeId,
+  type Point,
+  type Property
+} from './project'
 import { useShallow } from 'zustand/shallow';
 
 interface AppProps {
@@ -131,7 +141,7 @@ const createAppStore = () => {
         output.link = inputId;
       }));
     },
-    setPropertyValue: (id: NodeId, value: number) => {
+    setPropertyValue: (id: NodeId, value: Value) => {
       set((state) => produce(state, state => {
         const prop= state.project.nodes[id];
         invariant(prop?.ty === 'property', 'invalid-property-id');

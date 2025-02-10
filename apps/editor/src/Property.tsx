@@ -7,7 +7,6 @@ import invariant from 'tiny-invariant';
 import { useDrag, useDrop } from 'react-dnd'
 
 export const Property = memo(function Property({ propId }: { propId: NodeId }) {
-  const setValue = useAppStore(s => s.setPropertyValue);
   const prop = useAppStore(s => {
     const prop = s.project.nodes[propId]
     invariant(prop?.ty=== 'property', 'invalid-node-type')
@@ -18,12 +17,7 @@ export const Property = memo(function Property({ propId }: { propId: NodeId }) {
     invariant(block?.ty=== 'block', 'invalid-node-type')
     return block
   })
-
   const def = getPropDef(block.type, prop.key)
-
-  const handleChange = (value: number) => {
-    setValue(propId, value);
-  }
 
   return (
     <div className={css.container}>
@@ -31,10 +25,47 @@ export const Property = memo(function Property({ propId }: { propId: NodeId }) {
       {def.cat === 'input' && <Input propId={propId} /> }
       {def.cat === 'output' && <Output propId={propId} />}
       {prop.link && <UnlinkButton propId={propId} /> }
-      <NumberInput step={0.1} disabled={def.cat === 'output'} value={prop.value} onChange={handleChange} />
+      {prop.value.type === 'number' && <NumberValue disabled={def.cat === 'output'} propId={propId} />}
+      {prop.value.type === 'string' && <StringValue disabled={def.cat === 'output'} propId={propId} />}
     </div>
   )
 })
+
+function NumberValue({ disabled, propId }: { disabled: boolean; propId: NodeId }) {
+  const setValue = useAppStore(s => s.setPropertyValue);
+  const value = useAppStore(s => {
+    const prop = s.project.nodes[propId]
+    invariant(prop?.ty=== 'property', 'invalid-node-type')
+    invariant(prop.value.type === 'number');
+    return prop.value.value;
+  })
+
+  const handleChange = (value: number) => {
+    setValue(propId, { type: 'number', value });
+  }
+
+  return (
+      <NumberInput step={0.1} disabled={disabled} value={value} onChange={handleChange} />
+  )
+}
+
+function StringValue({ disabled, propId }: { disabled: boolean; propId: NodeId }) {
+  const setValue = useAppStore(s => s.setPropertyValue);
+  const value = useAppStore(s => {
+    const prop = s.project.nodes[propId]
+    invariant(prop?.ty=== 'property', 'invalid-node-type')
+    invariant(prop.value.type === 'string');
+    return prop.value.value;
+  })
+
+  const handleChange = (evt:React.ChangeEvent<HTMLInputElement>) => {
+    setValue(propId, { type: 'string', value: evt.target.value });
+  }
+
+  return (
+      <input type='text' disabled={disabled} value={value} onChange={handleChange} />
+  )
+}
 
 function UnlinkButton({ propId }: { propId: NodeId }) {
   const handleClick = () => {
