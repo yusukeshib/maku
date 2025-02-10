@@ -77,33 +77,39 @@ function UnlinkButton({ propId }: { propId: NodeId }) {
   )
 }
 
-function Input({ valueType, propId }: { valueType: ValueType; propId: NodeId }) {
-  const [{ canDrop: _, isOver }, ref] = useDrop(() => ({
+interface DragInfo {
+  valueType: ValueType;
+  propId: NodeId;
+}
+
+function Input({ valueType, propId }: DragInfo) {
+  const [{ isOver }, ref] = useDrop<DragInfo, unknown, { isOver: boolean }>(() => ({
     accept: 'property',
-    drop: () => ({ propId }),
+    drop: () => ({ propId, valueType }),
     collect: (monitor) => ({
       isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
     }),
+    canDrop: (from) => {
+      return from.valueType === valueType;
+    }
   }))
   return (
     <div data-over={isOver} data-type={valueType} ref={ref} className={css.dotIn} />
   )
 }
 
-function Output({ valueType, propId }: { valueType: ValueType; propId: NodeId }) {
+function Output({ valueType, propId }: DragInfo) {
   const [{ isDragging }, ref] = useDrag(() => ({
     type: 'property',
-    item: { propId, },
+    item: { propId, valueType },
     end: (from , monitor) => {
-      const to = monitor.getDropResult<{ propId: NodeId }>()
+      const to = monitor.getDropResult<DragInfo>()
       if (from && to) {
         getAppStore().linkProperties(from.propId, to.propId);
       }
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
-      handlerId: monitor.getHandlerId(),
     }),
   }))
 
