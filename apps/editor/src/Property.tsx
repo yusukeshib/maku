@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import css from './Property.module.css'
 import { NumberInput } from './NumberInput'
-import { getPropDef, NodeId } from './project';
+import { getPropDef, NodeId, ValueType } from './project';
 import { getAppStore, useAppStore } from './store';
 import invariant from 'tiny-invariant';
 import { useDrag, useDrop } from 'react-dnd'
@@ -22,8 +22,8 @@ export const Property = memo(function Property({ propId }: { propId: NodeId }) {
   return (
     <div className={css.container}>
       <div className={css.label}>{prop.key}</div>
-      {def.cat === 'input' && <Input propId={propId} /> }
-      {def.cat === 'output' && <Output propId={propId} />}
+      {def.cat === 'input' && <Input valueType={def.defaultValue.type} propId={propId} /> }
+      {def.cat === 'output' && <Output valueType={def.defaultValue.type} propId={propId} />}
       {prop.link && <UnlinkButton propId={propId} /> }
       {prop.value.type === 'number' && <NumberValue disabled={def.cat === 'output'} propId={propId} />}
       {prop.value.type === 'string' && <StringValue disabled={def.cat === 'output'} propId={propId} />}
@@ -77,7 +77,7 @@ function UnlinkButton({ propId }: { propId: NodeId }) {
   )
 }
 
-function Input({ propId }: { propId: NodeId }) {
+function Input({ valueType, propId }: { valueType: ValueType; propId: NodeId }) {
   const [{ canDrop: _, isOver }, ref] = useDrop(() => ({
     accept: 'property',
     drop: () => ({ propId }),
@@ -87,11 +87,11 @@ function Input({ propId }: { propId: NodeId }) {
     }),
   }))
   return (
-    <div data-over={isOver} ref={ref} className={css.dotIn} />
+    <div data-over={isOver} data-type={valueType} ref={ref} className={css.dotIn} />
   )
 }
 
-function Output({ propId }: { propId: NodeId }) {
+function Output({ valueType, propId }: { valueType: ValueType; propId: NodeId }) {
   const [{ isDragging }, ref] = useDrag(() => ({
     type: 'property',
     item: { propId, },
@@ -108,6 +108,6 @@ function Output({ propId }: { propId: NodeId }) {
   }))
 
   return (
-    <div data-dragging={isDragging} ref={ref} className={css.dotOut} />
+    <div data-dragging={isDragging} data-type={valueType} ref={ref} className={css.dotOut} />
   )
 }

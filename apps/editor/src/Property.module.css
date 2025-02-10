@@ -20,6 +20,14 @@
   background-color: gray;
 }
 
+.dotIn[data-type="number"], .dotOut[data-type="number"] {
+  background-color: yellow;
+}
+
+.dotIn[data-type="string"], .dotOut[data-type="string"] {
+  background-color: orange;
+}
+
 .unlinkButton {
   position: absolute;
   left: -4px;

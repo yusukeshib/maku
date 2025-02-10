@@ -51,6 +51,8 @@ export type Value =
 | { type: 'number'; value: number }
 | { type: 'string'; value: string }
 
+export type ValueType = Value['type'];
+
 export function isBlockType(ty: string): ty is BlockType {
   return !!blockDefs.find(def => def.type === ty);
 }
