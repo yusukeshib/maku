@@ -25,7 +25,7 @@ jobs:
       - name: Install project dependencies
         run: cd apps/editor && npm install
       - name: Build
-        run: cd apps/editor && npm run build
+        run: cd apps/editor && npm run build -- --base=/maku/
         env:
           NODE_ENV: production
       - name: Deploy
