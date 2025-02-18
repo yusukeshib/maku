@@ -1,7 +1,18 @@
 [package]
 name = "maku"
 version = "0.1.0"
+authors = ["Yusuke Shibata <yusukeshib@gmail.com>"]
 edition = "2021"
+description = "Maku core library"
+repository = "https://github.com/yusukeshib/maku"
+license = "MIT"
 
 [dependencies]
 thiserror = "2.0.7"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "maku"
+path = "src/maku.rs"

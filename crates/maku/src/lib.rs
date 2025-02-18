@@ -3,7 +3,7 @@ use std::fmt;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-enum MakuError {
+pub enum MakuError {
     #[error("Invalid property_id={0}")]
     InvalidPropertyId(PropertyId),
 }
@@ -12,7 +12,7 @@ type NodeId = usize;
 
 // Ex. (NodeID=12, Key="a")
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
-struct PropertyId {
+pub struct PropertyId {
     pub node_id: NodeId,
     pub key: String,
 }
@@ -32,7 +32,7 @@ impl fmt::Display for PropertyId {
     }
 }
 
-enum NodeInput {
+pub enum NodeInput {
     Add { a: f32, b: f32 },
     Multiply { a: f32, b: f32 },
 }
@@ -72,7 +72,7 @@ enum Property {
     Output,
 }
 
-struct Maku {
+pub struct Maku {
     nodes: Vec<Option<Node>>,
     properties: HashMap<PropertyId, Property>,
 }
@@ -149,15 +149,4 @@ impl Maku {
         self.properties.insert(property_id.clone(), property);
         property_id
     }
-}
-
-fn main() -> Result<(), MakuError> {
-    let mut maku = Maku::new();
-    let node1 = maku.add_node(NodeInput::Add { a: 2.0, b: 4.0 });
-    maku.set_property_value((node1, "b").into(), 2.0)?;
-    let node2 = maku.add_node(NodeInput::Multiply { a: 3.0, b: 5.0 });
-    maku.link_properties((node1, "c").into(), (node2, "a").into())?;
-    maku.remove_node(node1);
-    println!("Hello, world!");
-    Ok(())
 }
