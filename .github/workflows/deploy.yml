@@ -6,6 +6,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/editor
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -23,13 +26,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install project dependencies
-        run: cd apps/editor && npm install
+        run: npm install
       - name: Build
-        run: cd apps/editor && npm run build -- --base=/maku/
+        run: npm run build -- --base=/maku/
         env:
           NODE_ENV: production
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: apps/editor/dist
+          publish_dir: ./dist
