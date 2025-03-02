@@ -14,6 +14,7 @@ import {
   type Property,
 } from "./project";
 import { useShallow } from "zustand/shallow";
+import { download } from "./download";
 
 interface AppProps {
   project: Project;
@@ -34,7 +35,16 @@ const createAppStore = () => {
     },
   };
   return createStore(
-    combine(initial, (set) => ({
+    combine(initial, (set, get) => ({
+      loadProject: (project: Project) => {
+        set({ project });
+      },
+      dumpProject: () => {
+        const project = get().project;
+        const json = JSON.stringify(project, null, "  ");
+        const blob = new Blob([json], { type: "application/json" });
+        download("dump.json", blob);
+      },
       addBlock: (type: BlockType) => {
         const def = getBlockDef(type);
         invariant(def, "invalid-block-type");

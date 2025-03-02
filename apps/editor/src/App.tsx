@@ -1,7 +1,7 @@
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
-import { AddBlockButton } from "./AddBlockButton";
+import { Menu } from "./Menu";
 import css from "./App.module.css";
 import { Block } from "./Block";
 import { useAppStore } from "./store";
@@ -11,7 +11,7 @@ export function App() {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={css.container}>
-        <AddBlockButton />
+        <Menu />
         <Blocks />
         <Links />
       </div>
