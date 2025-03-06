@@ -36,7 +36,18 @@ const createAppStore = () => {
   };
   return createStore(
     combine(initial, (set, get) => ({
-      loadProject: (project: Project) => {
+      loadProject: async (file: File) => {
+        const str = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = reject;
+          reader.onload = () => {
+            invariant(typeof reader.result === "string");
+            resolve(reader.result);
+          };
+          reader.readAsText(file);
+        });
+        const project = JSON.parse(str);
+        // TODO: zod schema validatoin??
         set({ project });
       },
       dumpProject: () => {
