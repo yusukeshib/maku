@@ -37,18 +37,17 @@ pub enum NodeInput {
     Multiply { a: f32, b: f32 },
 }
 
-enum NodeType {
+pub enum NodeType {
     Add,
     Multiply,
 }
 
-struct Node {
+pub struct Node {
     pub ty: NodeType,
     pub properties: Vec<PropertyId>,
 }
 
-#[allow(dead_code)]
-enum PropertyValue {
+pub enum PropertyValue {
     Float(f32),
     Int(i32),
 }
@@ -65,8 +64,7 @@ impl From<i32> for PropertyValue {
     }
 }
 
-#[allow(dead_code)]
-enum Property {
+pub enum Property {
     Value(PropertyValue),
     Link(PropertyId),
     Output,

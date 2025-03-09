@@ -1,7 +1,9 @@
 {
-  "name": "editor",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@makulib/editor",
+  "author": "Yusuke Shibata<yusukeshib@gmail.com>",
+  "license": "MIT",
+  "description": "Maku editor",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

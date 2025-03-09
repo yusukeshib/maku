@@ -1,0 +1,28 @@
+{
+  "name": "@makulib/core",
+  "collaborators": [
+    "Yusuke Shibata <yusukeshib@gmail.com>"
+  ],
+  "description": "Maku core library",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "build": "wasm-pack build --out-name index --out-dir public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yusukeshib/maku"
+  },
+  "files": [
+    "public/index_bg.wasm",
+    "public/index.js",
+    "public/index_bg.js",
+    "public/index.d.ts"
+  ],
+  "module": "public/index.js",
+  "types": "public/index.d.ts",
+  "sideEffects": [
+    "./public/index.js",
+    "./public/snippets/*"
+  ]
+}

@@ -1,0 +1,30 @@
+[package]
+name = "web"
+version = "0.1.0"
+authors = ["Yusuke Shibata <yusukeshib@gmail.com>"]
+edition = "2021"
+description = "Maku web library"
+repository = "https://github.com/yusukeshib/maku"
+license = "MIT"
+
+[features]
+default = ["console_error_panic_hook"]
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[build]
+target = "wasm32-unknown-unknown"
+
+[dependencies]
+maku = { path = "../maku" }
+wasm-bindgen = "0.2"
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.34"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
