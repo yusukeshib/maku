@@ -73,6 +73,7 @@ pub enum Property {
 pub struct Maku {
     nodes: Vec<Option<Node>>,
     properties: HashMap<PropertyId, Property>,
+    values: HashMap<PropertyId, PropertyValue>,
 }
 
 impl Maku {
@@ -80,6 +81,7 @@ impl Maku {
         Self {
             nodes: vec![],
             properties: HashMap::new(),
+            values: HashMap::new(),
         }
     }
 
@@ -104,6 +106,7 @@ impl Maku {
             },
         };
         self.nodes.push(Some(node));
+        self.update();
         node_id
     }
 
@@ -115,6 +118,7 @@ impl Maku {
             }
             // TODO: Remove links too
             self.nodes[node_id] = None;
+            self.update();
         }
     }
 
@@ -127,6 +131,7 @@ impl Maku {
         // TODO: Output isn't allowed to be
         // TODO: Check property types
         *p2 = Property::Link(id1);
+        self.update();
         Ok(())
     }
 
@@ -139,6 +144,7 @@ impl Maku {
             .get_mut(&id)
             .ok_or(MakuError::InvalidPropertyId(id))?;
         *p = Property::Value(value.into());
+        self.update();
         Ok(())
     }
 
@@ -146,5 +152,9 @@ impl Maku {
         let property_id: PropertyId = (node_id, key).into();
         self.properties.insert(property_id.clone(), property);
         property_id
+    }
+
+    fn update(&mut self) {
+        todo!()
     }
 }
