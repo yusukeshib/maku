@@ -9,6 +9,7 @@ fn main() -> Result<(), MakuError> {
     maku.remove_node(node1);
 
     maku.update();
+
     println!("Hello, world!");
     Ok(())
 }
