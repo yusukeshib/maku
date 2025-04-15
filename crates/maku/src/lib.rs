@@ -73,6 +73,7 @@ pub enum Property {
 pub struct Maku {
     nodes: Vec<Option<Node>>,
     properties: HashMap<PropertyId, Property>,
+    values: HashMap<PropertyId, PropertyValue>,
 }
 
 impl Maku {
@@ -80,6 +81,7 @@ impl Maku {
         Self {
             nodes: vec![],
             properties: HashMap::new(),
+            values: HashMap::new(),
         }
     }
 
@@ -146,5 +148,9 @@ impl Maku {
         let property_id: PropertyId = (node_id, key).into();
         self.properties.insert(property_id.clone(), property);
         property_id
+    }
+
+    pub fn update(&mut self) {
+        todo!()
     }
 }

@@ -7,5 +7,9 @@ fn main() -> Result<(), MakuError> {
     let node2 = maku.add_node(NodeInput::Multiply { a: 3.0, b: 5.0 });
     maku.link_properties((node1, "c").into(), (node2, "a").into())?;
     maku.remove_node(node1);
+
+    maku.update();
+
+    println!("Hello, world!");
     Ok(())
 }
