@@ -77,7 +77,7 @@ The ultimate goal: **Create a next-generation general-purpose compute runtime in
 ### Load Engine
 
 ```js
-import init, { WasmEngine } from "maku";
+import init, { WasmEngine } from "maku-web";
 
 await init();
 const engine = new WasmEngine();

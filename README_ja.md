@@ -77,7 +77,7 @@ maku は **Rust** 製の、**AI**, **画像処理**, **数値計算**, そして
 ### エンジンをロード
 
 ```js
-import init, { WasmEngine } from "maku";
+import init, { WasmEngine } from "maku-web";
 
 await init();
 const engine = new WasmEngine();
