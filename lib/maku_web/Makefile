@@ -13,7 +13,7 @@ help:
 
 build:
 	@echo "Building WASM package..."
-	wasm-pack build --target web
+	wasm-pack build --target web --no-pack --out-dir lib --out-name index
 
 clean:
 	@echo "Cleaning build artifacts..."
