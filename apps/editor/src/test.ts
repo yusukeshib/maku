@@ -1,4 +1,4 @@
-import init, { WasmEngine } from "maku_web"; // Adjust to match wasm-pack output
+import init, { WasmEngine } from "@makulib/web"; // Adjust to match wasm-pack output
 
 type JsTensor = {
   shape: number[];
@@ -18,8 +18,8 @@ type JsGraph = {
   outputs: string[];
 };
 
-async function runExample() {
-  // await init(); // Initialize wasm (if needed)
+export async function runExample() {
+  await init(); // Initialize wasm (if needed)
 
   const engine = new WasmEngine();
 
