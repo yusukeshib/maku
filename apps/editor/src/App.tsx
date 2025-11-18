@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { runExample } from './test'
+import * as styles from './App.css'
 
 function App() {
   const [count, setCount] = useState<number>(0)
@@ -10,10 +11,10 @@ function App() {
   }
 
   return (
-    <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={handleClick}>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Vite + React</h1>
+      <div className={styles.card}>
+        <button className={styles.button} onClick={handleClick}>
           count is {count}
         </button>
         <p>
@@ -23,7 +24,7 @@ function App() {
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>
-    </>
+    </div>
   )
 }
 
