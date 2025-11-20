@@ -8,10 +8,10 @@ export class WasmEngine {
   [Symbol.dispose](): void;
   constructor();
   /**
-   * graph: JsGraph を表す JS オブジェクト
-   * inputs: { [valueId: string]: JsTensor } な JS オブジェクト
+   * graph: JS object representing JsGraph
+   * inputs: JS object of { [valueId: string]: JsTensor }
    *
-   * 返り値: { [valueId: string]: JsTensor } な JS オブジェクト
+   * Returns: JS object of { [valueId: string]: JsTensor }
    */
   run(graph: any, inputs: any): any;
 }

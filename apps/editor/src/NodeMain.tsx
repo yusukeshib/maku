@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useMaku } from "./maku/provider"
-import type { JsGraph, JsTensor } from "./modules/maku/types";
+import type { JsGraph, JsTensor } from "./maku/types";
 
 export function NodeMain() {
   const { engine } = useMaku();
+  const [result, setResult] = useState('');
 
   const handleClick = () => {
     const graph: JsGraph = {
@@ -36,13 +38,38 @@ export function NodeMain() {
     const inputs = { x, w, };
 
     const result = engine.run(graph, inputs)
-
-    console.log("outputs:", result);
+    console.log('Graph run result:', result);
+    const results = Array.from(result.values())
+    setResult(JSON.stringify(results, null, 2));
   }
   return (
     <div>
       <button onClick={handleClick}>Run Graph</button>
+      <p>graph</p>
       <pre>
+        {`
+{
+  nodes: [
+    {
+      id: "matmul1",
+      op: "MatMul",
+      inputs: ["x", "w"],
+      output: "z",
+    },
+    {
+      id: "relu1",
+      op: "Relu",
+      inputs: ["z"],
+      output: "y",
+    },
+  ],
+  outputs: ["y"],
+}
+`}
+      </pre>
+      <p>result</p>
+      <pre>
+        {result}
       </pre>
     </div>
   )

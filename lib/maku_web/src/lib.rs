@@ -13,7 +13,7 @@ pub struct JsTensor {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "op", rename_all = "camelCase")]
+#[serde(tag = "op")]
 pub enum JsOpKind {
     Input,
     Constant { tensor: JsTensor },
@@ -25,6 +25,7 @@ pub enum JsOpKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsNode {
     pub id: String,
+    #[serde(flatten)]
     pub op: JsOpKind,
     pub inputs: Vec<String>,
     pub output: String,
@@ -153,10 +154,10 @@ impl WasmEngine {
         }
     }
 
-    /// graph: JsGraph を表す JS オブジェクト
-    /// inputs: { [valueId: string]: JsTensor } な JS オブジェクト
+    /// graph: JS object representing JsGraph
+    /// inputs: JS object of { [valueId: string]: JsTensor }
     ///
-    /// 返り値: { [valueId: string]: JsTensor } な JS オブジェクト
+    /// Returns: JS object of { [valueId: string]: JsTensor }
     #[wasm_bindgen]
     pub fn run(&mut self, graph: JsValue, inputs: JsValue) -> Result<JsValue, JsValue> {
         // JsValue -> Rust構造体 (serde_wasm_bindgen)
