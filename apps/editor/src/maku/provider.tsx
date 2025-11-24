@@ -1,5 +1,5 @@
 import init, { WasmEngine } from "@makulib/web";
-import { useState, useEffect, } from 'react';
+import { useState, useEffect } from "react";
 import { MakuContext } from "./context";
 
 export function MakuProvider(props: { children: React.ReactNode }) {
@@ -7,15 +7,12 @@ export function MakuProvider(props: { children: React.ReactNode }) {
 
   useEffect(() => {
     init().then(() => {
-      const engine = new WasmEngine()
+      const engine = new WasmEngine();
       setEngine(engine);
     });
   }, []);
 
   if (!engine) return null;
 
-  return (
-    <MakuContext.Provider value={{ engine }} {...props} />
-  )
+  return <MakuContext.Provider value={{ engine }} {...props} />;
 }
-

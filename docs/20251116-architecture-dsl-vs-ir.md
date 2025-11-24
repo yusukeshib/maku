@@ -74,6 +74,7 @@ CPU / SIMD / WebGPU
 #### 4. Industry-Standard Pattern
 
 This matches the design of established frameworks:
+
 - **TensorFlow**: Python API (high-level) ⇄ GraphDef (low-level IR)
 - **PyTorch**: Python API ⇄ TorchScript
 - **MLIR**: Multiple abstraction levels with progressive lowering
@@ -121,9 +122,24 @@ This matches the design of established frameworks:
   },
   "graph": {
     "nodes": [
-      { "id": "conv1", "op": "Conv2d", "inputs": ["x", "weight1"], "output": "conv1_out" },
-      { "id": "bn1", "op": "BatchNorm", "inputs": ["conv1_out"], "output": "bn1_out" },
-      { "id": "relu", "op": "Relu", "inputs": ["bn1_out"], "output": "relu_out" },
+      {
+        "id": "conv1",
+        "op": "Conv2d",
+        "inputs": ["x", "weight1"],
+        "output": "conv1_out"
+      },
+      {
+        "id": "bn1",
+        "op": "BatchNorm",
+        "inputs": ["conv1_out"],
+        "output": "bn1_out"
+      },
+      {
+        "id": "relu",
+        "op": "Relu",
+        "inputs": ["bn1_out"],
+        "output": "relu_out"
+      },
       { "id": "add", "op": "Add", "inputs": ["relu_out", "x"], "output": "out" }
     ]
   },
@@ -136,15 +152,15 @@ This matches the design of established frameworks:
 ### Usage in React UI
 
 ```jsx
-import { usePackage } from 'maku-packages';
+import { usePackage } from "maku-packages";
 
 function MyModel() {
-  const resnetBlock = usePackage('resnet-block@1.0.0');
+  const resnetBlock = usePackage("resnet-block@1.0.0");
 
   return (
     <Graph>
       <Input name="image" />
-      <Node use={resnetBlock} inputs={{x: "image"}} output="features" />
+      <Node use={resnetBlock} inputs={{ x: "image" }} output="features" />
       <Node op="Dense" inputs={["features"]} output="logits" />
     </Graph>
   );
@@ -201,12 +217,12 @@ impl PackageRegistry {
 
 ## Inspiration from Existing Ecosystems
 
-| Project | Package Format | Key Features |
-|---------|----------------|--------------|
-| **ONNX** | Protobuf | AI model interchange, operator registry |
-| **npm** | JSON | Version management, dependency resolution |
-| **Hugging Face Hub** | Git-based | Model & dataset sharing, community-driven |
-| **TVM PackedFunc** | Binary | Pre-compiled functions, cross-platform |
+| Project              | Package Format | Key Features                              |
+| -------------------- | -------------- | ----------------------------------------- |
+| **ONNX**             | Protobuf       | AI model interchange, operator registry   |
+| **npm**              | JSON           | Version management, dependency resolution |
+| **Hugging Face Hub** | Git-based      | Model & dataset sharing, community-driven |
+| **TVM PackedFunc**   | Binary         | Pre-compiled functions, cross-platform    |
 
 ## Current Issues & Improvements
 
@@ -261,6 +277,7 @@ impl GraphContext {
 #### 2. Shape Inference
 
 Currently `value_types` is only partially populated (`lib/maku/src/lib.rs:88`). Need to:
+
 - Implement shape inference for all operations
 - Propagate type information through the graph
 - Catch shape mismatches at compile time
@@ -268,6 +285,7 @@ Currently `value_types` is only partially populated (`lib/maku/src/lib.rs:88`). 
 ## Implementation Roadmap
 
 ### Phase 0 (Current) ✓
+
 - [x] Basic Tensor abstraction
 - [x] Graph IR
 - [x] CPU Backend
@@ -275,6 +293,7 @@ Currently `value_types` is only partially populated (`lib/maku/src/lib.rs:88`). 
 - [x] Basic JsGraph ⇄ Core Graph conversion
 
 ### Phase 1 (Next Priority)
+
 - [ ] GraphContext with name management
 - [ ] Shape inference engine
 - [ ] Package Format definition (JSON Schema)
@@ -282,6 +301,7 @@ Currently `value_types` is only partially populated (`lib/maku/src/lib.rs:88`). 
 - [ ] Improved error diagnostics
 
 ### Phase 2 (Operator Expansion)
+
 - [ ] Package Registry implementation
 - [ ] Dependency resolution
 - [ ] Versioning & compatibility checks
@@ -289,18 +309,21 @@ Currently `value_types` is only partially populated (`lib/maku/src/lib.rs:88`). 
 - [ ] Extended activation functions
 
 ### Phase 3 (Ecosystem)
+
 - [ ] Web UI for browsing packages
 - [ ] Package upload/download
 - [ ] Validation & sandboxed execution
 - [ ] Community package repository
 
 ### Phase 4 (Advanced Features)
+
 - [ ] Pre-compiled artifacts (WASM binaries)
 - [ ] Differential privacy support (untrusted packages)
 - [ ] Federated learning capabilities
 - [ ] Cross-platform binary distribution
 
 ### Phase 5 (GPU & Optimization)
+
 - [ ] WebGPU backend (wgpu + WGSL)
 - [ ] Kernel fusion
 - [ ] Auto-tuning

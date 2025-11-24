@@ -1,4 +1,3 @@
-
 # Milestone 1: MobileNetV2 / V3 互換の WASM Runtime
 
 maku の最初の大きなマイルストーンとして **「MobileNetV2 / MobileNetV3 に互換性を持つ WASM Runtime」** を狙う理由と、それを実現するための実装ロードマップをまとめます。
@@ -8,6 +7,7 @@ maku の最初の大きなマイルストーンとして **「MobileNetV2 / Mobi
 ## なぜ MobileNetV2 / V3 × WASM を最初のマイルストーンにするのか
 
 ### 1. もっとも“使われている軽量モデル”であり入口になりやすい
+
 MobileNet 系は、世界中で最も広く使われている軽量 CNN の代表格です。
 
 - 画像分類の定番モデル
@@ -19,6 +19,7 @@ MobileNet 系は、世界中で最も広く使われている軽量 CNN の代�
 ---
 
 ### 2. 必要な演算（op）が少なく、互換実装のコストが読みやすい
+
 MobileNetV2/V3 が要求する演算は比較的シンプルなサブセットで完結します。
 
 主に必要な op:
@@ -39,6 +40,7 @@ MobileNetV2/V3 が要求する演算は比較的シンプルなサブセット�
 ---
 
 ### 3. Web エコシステムと噛み合う（NHWC・WASM・WebGPU）
+
 MobileNet は **NHWC レイアウト前提の実装が自然**で、
 
 - ブラウザの画像 I/O（Canvas, video）のデータ並びと一致
@@ -51,6 +53,7 @@ MobileNet は **NHWC レイアウト前提の実装が自然**で、
 ---
 
 ### 4. “動くデモ”が作りやすく、ユーザー獲得が最短
+
 WASM runtime で MobileNet を動かせると:
 
 - 画像分類デモ（ドラッグ&ドロップ／カメラ入力）
@@ -63,6 +66,7 @@ OSS の伸びは **最初のデモ体験で決まる**ので、ここに一番�
 ---
 
 ### 5. Runtime と IR の設計が固まり、次の拡張が楽になる
+
 MobileNet を通すと:
 
 - IR の opset
@@ -93,27 +97,32 @@ MobileNet を通すと:
 ---
 
 ### Phase 0: ゴールの明確化（1–2日）
+
 - MobileNetV2/V3 の ONNX を固定ターゲットとして決める
 - 入力／出力の仕様を確定（例: 224×224 RGB, float32, NHWC）
 - サポートする opset の範囲を宣言（README に ALPHA として明記）
 
 成果物:
+
 - `docs/milestone1-goals.md`（対象モデルと範囲を明記）
 
 ---
 
 ### Phase 1: IR 最小セットの確定（〜1週）
+
 - MobileNet が必要とする op を IR として定義
 - ノードの属性（stride, padding, groups, activation etc）を整理
 - IR の内部レイアウトを **NHWC に統一**する方針を決定
 
 成果物:
+
 - `crates/ir` の op 定義
 - `docs/ir-opset-mobilenet.md`
 
 ---
 
 ### Phase 2: Shape inference & IR 正規化パイプライン（1–2週）
+
 - 各 op の出力 shape 推論を実装
 - NCHW 入力モデルへの対応として  
   **必要な箇所に Transpose を自動挿入**
@@ -123,24 +132,28 @@ MobileNet を通すと:
   - 単純な op fusion（Conv+Activation など）
 
 成果物:
+
 - `crates/optimizer`（または lowering の一部）
 - `tests/shape_inference/*.rs`
 
 ---
 
 ### Phase 3: WASM Runtime の骨格（1–2週）
+
 - Linear memory allocator を実装
   - Tensor = (offset, shape, dtype)
   - ワークバッファを事前確保して再利用
 - Execution plan を生成し、dispatcher で順次実行できるようにする
 
 成果物:
+
 - `crates/runtime-wasm`
 - `ExecutionPlan` 構造体 + 実行ループ
 
 ---
 
 ### Phase 4: コアカーネル実装（2–4週）
+
 優先順位は MobileNet の計算コスト順に。
 
 1. **Conv2D（NHWC）**
@@ -153,24 +166,28 @@ MobileNet を通すと:
 6. **Reshape / Transpose / Concat**
 
 成果物:
+
 - `crates/kernels-wasm`
 - `tests/kernels/*.rs`（CPU reference と突き合わせ）
 
 ---
 
 ### Phase 5: ONNX → IR Converter（1–2週）
+
 - ONNX parser で graph/weights を取得
 - opset mapping（Conv, BN, DWConv, Add, Gemm etc）
 - weights の layout 変換（必要な場合のみ）
 - IR 正規化 → lowering → execution plan まで通す
 
 成果物:
+
 - `crates/onnx-import`
 - `examples/import_mobilenet.rs`
 
 ---
 
 ### Phase 6: 互換検証 & 最初のデモ（1–2週）
+
 - MobileNetV2/V3 の推論結果を以下で一致させる
   - PyTorch / ONNXRuntime 参照
   - maku WASM runtime
@@ -179,12 +196,14 @@ MobileNet を通すと:
   - 画像を読み込み → 推論 → top-k 表示
 
 成果物:
+
 - `apps/demo-web`（または `examples/web/`）
 - `docs/mobilenet-compat-report.md`
 
 ---
 
 ### Phase 7: 最低限の性能改善（オプション / 1–2週）
+
 “使える速さ”に達していれば後回しでも良い。
 
 - Conv / DWConv のホットスポットを profiling
@@ -193,6 +212,7 @@ MobileNet を通すと:
 - メモリ再割当の削減 / バッファ再利用
 
 成果物:
+
 - `bench/wasm_conv_bench.md`
 - SIMD 版 kernel（feature flag）
 
@@ -203,19 +223,20 @@ MobileNet を通すと:
 - [ ] MobileNetV2 の ONNX を **そのまま読み込み** 推論できる
 - [ ] MobileNetV3 も同様に推論できる（Small / Large どちらか片方でも可）
 - [ ] 参照実装（ONNXRuntime / PyTorch）と  
-      **出力誤差が許容範囲**に収まる
+       **出力誤差が許容範囲**に収まる
 - [ ] Web デモで実際に動かせる
 - [ ] README / docs に “対応範囲と既知の制限” を明記
 
 ---
 
 ## 次の拡張に向けて
+
 このマイルストーンが終わると、次の道が開きます:
 
-1. ResNet / EfficientNet-Lite の互換拡大  
-2. WebGPU backend 追加（同じ IR / plan を再利用）  
-3. より広い ONNX opset 対応  
-4. 高度な fusion / memory planning  
+1. ResNet / EfficientNet-Lite の互換拡大
+2. WebGPU backend 追加（同じ IR / plan を再利用）
+3. より広い ONNX opset 対応
+4. 高度な fusion / memory planning
 5. 本格 SIMD / multi-threading
 
 MobileNet は **maku の“最小で最大の価値を証明する”入口**なので、  

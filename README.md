@@ -11,15 +11,19 @@ aiming to be a "universal compute layer" that can execute the same computation g
 The current computational ecosystem is fragmented:
 
 ### ❌ AI Frameworks
+
 Strong for matrix operations and neural networks, but weak in image processing, general numerical computation, and Web support.
 
 ### ❌ Image Processing Frameworks (OpenCV / Halide)
+
 Strong for filter processing, but cannot express AI or generalized computation graphs.
 
 ### ❌ WebAssembly / WebGPU World
+
 Fast, but **lacks IR / optimizer / graph runtime**.
 
 ### ❌ CPU / SIMD / GPU Are Independent with No Unified Abstraction
+
 Separate implementations required for each environment.
 
 ## 🎯 Goals
@@ -35,7 +39,6 @@ Separate implementations required for each environment.
 - Eventually implement Optimizer, Lowering, Fusion, etc.
 
 The ultimate goal: **Create a next-generation general-purpose compute runtime in Rust that runs everywhere.**
-
 
 ## 🧩 Architecture Overview
 
@@ -89,9 +92,9 @@ const engine = new WasmEngine();
 const graph = {
   nodes: [
     { id: "mm1", op: "MatMul", inputs: ["x", "w"], output: "z" },
-    { id: "relu1", op: "Relu", inputs: ["z"], output: "y" }
+    { id: "relu1", op: "Relu", inputs: ["z"], output: "y" },
   ],
-  outputs: ["y"]
+  outputs: ["y"],
 };
 ```
 
@@ -99,8 +102,8 @@ const graph = {
 
 ```js
 const inputs = {
-  x: { shape: [2,3], data: [1,2,3,4,5,6] },
-  w: { shape: [3,1], data: [1,0.5,-1] }
+  x: { shape: [2, 3], data: [1, 2, 3, 4, 5, 6] },
+  w: { shape: [3, 1], data: [1, 0.5, -1] },
 };
 ```
 
@@ -114,6 +117,7 @@ console.log(result);
 ## 🗺 Phase-wise TODO
 
 ### Phase 0 — Foundation
+
 - [ ] Tensor Abstraction
 - [ ] Graph IR
 - [ ] Basic Ops
@@ -122,6 +126,7 @@ console.log(result);
 - [ ] JavaScript API
 
 ### Phase 1 — Stabilization & Optimization
+
 - [ ] Shape Inference
 - [ ] Static Type Checking
 - [ ] Error Diagnostics Improvement
@@ -130,6 +135,7 @@ console.log(result);
 - [ ] Benchmarks
 
 ### Phase 2 — Operation Extension
+
 - [ ] Conv2d
 - [ ] Reduce (sum, max)
 - [ ] Broadcast
@@ -137,22 +143,25 @@ console.log(result);
 - [ ] Activation Ops
 
 ### Phase 3 — GPU Backend (WebGPU / wgpu)
+
 - [ ] WGSL Kernel Generation
 - [ ] WebGPU Pipeline
 - [ ] Operation Fusion
 - [ ] Auto Tiling
 
 ### Phase 4 — IR Optimization & Lowering
+
 - [ ] Graph IR → Loop IR
 - [ ] Constant Folding
 - [ ] Layout Transform
 - [ ] Fusion Pass
 
 ### Phase 5 — Developer Tools
+
 - [ ] CLI Debugger
 - [ ] Graph Visualization
 - [ ] React UI (optional)
-- [ ] Web Playground  
+- [ ] Web Playground
 
 ## 🏁 Ultimate Goal
 
@@ -171,4 +180,3 @@ Ultimately,
 
 Created by **Yusuke Shibata**
 Built for the future of Web-native compute.
-

@@ -1,4 +1,3 @@
-
 # Wasm + Rust による Conv2D / Add 実装まとめ（maku向け）
 
 このドキュメントは **Rust で実装したカーネルを WebAssembly (Wasm) にコンパイルして動かす**前提で、  
@@ -13,11 +12,13 @@
 ## 1. 前提：NHWC レイアウト
 
 ### テンソル形状
+
 - 入力 `x` : `[N, H, W, C_in]`
 - 出力 `y` : `[N, H_out, W_out, C_out]`
 - カーネル `w` : `[K_h, K_w, C_in, C_out]`（OHWI）
 
 ### フラット配列の index
+
 NHWC のとき、4次元テンソルは 1次元配列に次の式でマップできます：
 
 ```rust
@@ -129,6 +130,7 @@ pub fn conv2d_nhwc(
 ```
 
 #### ポイント
+
 - **stride / padding を座標変換で処理**
 - 入力範囲外は 0 とみなす（zero padding）
 - まずはスカラで正しく動く形を作る
@@ -158,6 +160,7 @@ JS 側は `Float32Array` を渡して `Vec<f32>` を受け取る形になりま�
 ---
 
 ### 2.4 高速化の方向（後からでOK）
+
 - **im2col + GEMM** に切り替える  
   Conv を行列積へ変換し、GEMM だけ最適化すればよくなる。
 - **Wasm SIMD（f32x4）** を hot loop に部分適用
@@ -169,6 +172,7 @@ JS 側は `Float32Array` を渡して `Vec<f32>` を受け取る形になりま�
 ## 3. Add（要素加算）の実装
 
 ### 3.1 仕様
+
 Add は形状が一致するテンソル同士の **要素ごとの加算**：
 
 ```text
@@ -196,6 +200,7 @@ pub fn add(a: &[f32], b: &[f32], out: &mut [f32]) {
 ---
 
 ### 3.3 Broadcast が必要な場合（例：bias add）
+
 ONNX などでは broadcasting を許すため、必要なら拡張します。
 
 例：`[N,H,W,C] + [C]`
@@ -240,14 +245,15 @@ pub fn add_simd(a: &[f32], b: &[f32], out: &mut [f32]) {
 
 ## 4. Conv2D と Add の難易度比較
 
-| op | 実装難易度 | 主な理由 |
-|---|---:|---|
-| Add | ★☆☆☆☆ | 線形走査で足すだけ。layout依存なし。 |
-| Conv2D | ★★★★★ | stride/padding/shape/layout/最適化が絡む。 |
+| op     | 実装難易度 | 主な理由                                   |
+| ------ | ---------: | ------------------------------------------ |
+| Add    |      ★☆☆☆☆ | 線形走査で足すだけ。layout依存なし。       |
+| Conv2D |      ★★★★★ | stride/padding/shape/layout/最適化が絡む。 |
 
 ---
 
 ## 5. maku での実装優先度
+
 MobileNetV2/V3 互換を狙う場合の優先順：
 
 1. **Conv2D (NHWC)**
@@ -259,6 +265,7 @@ MobileNetV2/V3 互換を狙う場合の優先順：
 ---
 
 ## Appendix: ありがちな落とし穴
+
 - **layout mismatch**：ONNX が NCHW の場合、IR 正規化で Transpose を挿入
 - **padding の扱い差**：same/valid を明示的に数式化して実装
 - **float の誤差**：CPU 参照と完全一致を求めすぎない（許容誤差で比較）

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+.bun
+
+# Build outputs
+dist
+build
+out
+target
+*.wasm
+
+# Lock files
+bun.lockb
+package-lock.json
+yarn.lock
+
+# Cache
+.cache
+.turbo
+
+# Git
+.git
+
+# OS
+.DS_Store
+
+/lib/maku_web/lib/

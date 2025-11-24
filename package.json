@@ -3,7 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "workspaces": [
-    "apps/editor",
-    "lib/maku_web"
-  ]
+    "apps/editor"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
 }

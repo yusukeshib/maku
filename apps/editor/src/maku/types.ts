@@ -15,4 +15,3 @@ export type JsGraph = {
   nodes: JsNode[];
   outputs: string[];
 };
-
