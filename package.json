@@ -3,13 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "workspaces": [
-    "apps/editor"
+    "apps/editor",
+    "lib/maku_web"
   ],
   "scripts": {
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "prettier": "^3.6.2"
   }
 }
