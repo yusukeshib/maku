@@ -1,10 +1,10 @@
 import { MakuProvider } from './maku/provider'
-import { NodeMain } from './NodeMain'
+import { Editor } from './Editor'
 
 function App() {
   return (
     <MakuProvider>
-      <NodeMain />
+      <Editor />
     </MakuProvider>
   )
 }

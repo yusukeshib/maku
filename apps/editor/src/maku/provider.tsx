@@ -1,7 +1,6 @@
 import init, { WasmEngine } from "@makulib/web";
-import { createContext, useState, useEffect, useContext, } from 'react';
-
-const MakuContext = createContext<{ engine: WasmEngine }>(null!);
+import { useState, useEffect, } from 'react';
+import { MakuContext } from "./context";
 
 export function MakuProvider(props: { children: React.ReactNode }) {
   const [engine, setEngine] = useState<WasmEngine | null>(null);
@@ -20,6 +19,3 @@ export function MakuProvider(props: { children: React.ReactNode }) {
   )
 }
 
-export function useMaku() {
-  return useContext(MakuContext);
-}
