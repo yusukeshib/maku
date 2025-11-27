@@ -2,7 +2,7 @@
 
 # Run Prettier format check
 echo "Checking code formatting with Prettier..."
-bun run format:check || exit 1
+bun run format || exit 1
 
 # Run ESLint
 echo "Running ESLint..."
