@@ -12,14 +12,111 @@ pub struct JsTensor {
     pub data: Vec<f32>,
 }
 
+// Attribute structures for each operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Conv2DAttrs {
+    pub kernel_shape: [usize; 2],
+    #[serde(default = "default_strides")]
+    pub strides: [usize; 2],
+    #[serde(default = "default_pads")]
+    pub pads: [usize; 4],
+    #[serde(default = "default_dilations")]
+    pub dilations: [usize; 2],
+    #[serde(default = "default_group")]
+    pub group: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DepthwiseConv2DAttrs {
+    pub kernel_shape: [usize; 2],
+    #[serde(default = "default_strides")]
+    pub strides: [usize; 2],
+    #[serde(default = "default_pads")]
+    pub pads: [usize; 4],
+    #[serde(default = "default_dilations")]
+    pub dilations: [usize; 2],
+    #[serde(default = "default_depth_multiplier")]
+    pub depth_multiplier: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchNormAttrs {
+    #[serde(default = "default_epsilon")]
+    pub epsilon: f32,
+    #[serde(default = "default_momentum")]
+    pub momentum: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AveragePoolAttrs {
+    pub kernel_shape: [usize; 2],
+    #[serde(default = "default_strides")]
+    pub strides: [usize; 2],
+    #[serde(default = "default_pads")]
+    pub pads: [usize; 4],
+    #[serde(default)]
+    pub count_include_pad: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MatMulAttrs {
+    #[serde(default)]
+    pub trans_a: bool,
+    #[serde(default)]
+    pub trans_b: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReshapeAttrs {
+    pub shape: Vec<isize>, // can include -1 for auto-inference
+    #[serde(default)]
+    pub allowzero: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransposeAttrs {
+    pub perm: Vec<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConcatAttrs {
+    pub axis: usize,
+}
+
+// Default value functions
+fn default_strides() -> [usize; 2] { [1, 1] }
+fn default_pads() -> [usize; 4] { [0, 0, 0, 0] }
+fn default_dilations() -> [usize; 2] { [1, 1] }
+fn default_group() -> usize { 1 }
+fn default_depth_multiplier() -> usize { 1 }
+fn default_epsilon() -> f32 { 1e-5 }
+fn default_momentum() -> f32 { 0.9 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum JsOpKind {
     Input,
     Constant { tensor: JsTensor },
     Add,
-    MatMul,
+    Mul,
+    MatMul {
+        #[serde(default)]
+        attrs: Option<MatMulAttrs>
+    },
     Relu,
+    Relu6,
+    HardSwish,
+    Conv2D { attrs: Conv2DAttrs },
+    DepthwiseConv2D { attrs: DepthwiseConv2DAttrs },
+    BatchNorm {
+        #[serde(default)]
+        attrs: Option<BatchNormAttrs>
+    },
+    AveragePool { attrs: AveragePoolAttrs },
+    GlobalAveragePool,
+    Reshape { attrs: ReshapeAttrs },
+    Transpose { attrs: TransposeAttrs },
+    Concat { attrs: ConcatAttrs },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,8 +206,65 @@ fn build_core_graph(js_graph: &JsGraph) -> Graph {
                 OpKind::Constant(core_t)
             }
             JsOpKind::Add => OpKind::Add,
-            JsOpKind::MatMul => OpKind::MatMul,
+            JsOpKind::Mul => OpKind::Mul,
+            JsOpKind::MatMul { attrs } => {
+                OpKind::MatMul(attrs.as_ref().map(|a| maku::MatMulAttrs {
+                    trans_a: a.trans_a,
+                    trans_b: a.trans_b,
+                }))
+            }
             JsOpKind::Relu => OpKind::Relu,
+            JsOpKind::Relu6 => OpKind::Relu6,
+            JsOpKind::HardSwish => OpKind::HardSwish,
+            JsOpKind::Conv2D { attrs } => {
+                OpKind::Conv2D(maku::Conv2DAttrs {
+                    kernel_shape: attrs.kernel_shape,
+                    strides: attrs.strides,
+                    pads: attrs.pads,
+                    dilations: attrs.dilations,
+                    group: attrs.group,
+                })
+            }
+            JsOpKind::DepthwiseConv2D { attrs } => {
+                OpKind::DepthwiseConv2D(maku::DepthwiseConv2DAttrs {
+                    kernel_shape: attrs.kernel_shape,
+                    strides: attrs.strides,
+                    pads: attrs.pads,
+                    dilations: attrs.dilations,
+                    depth_multiplier: attrs.depth_multiplier,
+                })
+            }
+            JsOpKind::BatchNorm { attrs } => {
+                OpKind::BatchNorm(attrs.as_ref().map(|a| maku::BatchNormAttrs {
+                    epsilon: a.epsilon,
+                    momentum: a.momentum,
+                }))
+            }
+            JsOpKind::AveragePool { attrs } => {
+                OpKind::AveragePool(maku::AveragePoolAttrs {
+                    kernel_shape: attrs.kernel_shape,
+                    strides: attrs.strides,
+                    pads: attrs.pads,
+                    count_include_pad: attrs.count_include_pad,
+                })
+            }
+            JsOpKind::GlobalAveragePool => OpKind::GlobalAveragePool,
+            JsOpKind::Reshape { attrs } => {
+                OpKind::Reshape(maku::ReshapeAttrs {
+                    shape: attrs.shape.clone(),
+                    allowzero: attrs.allowzero,
+                })
+            }
+            JsOpKind::Transpose { attrs } => {
+                OpKind::Transpose(maku::TransposeAttrs {
+                    perm: attrs.perm.clone(),
+                })
+            }
+            JsOpKind::Concat { attrs } => {
+                OpKind::Concat(maku::ConcatAttrs {
+                    axis: attrs.axis,
+                })
+            }
         };
 
         // Input/output type information should really be inferred, but

@@ -57,14 +57,80 @@ impl Tensor {
     }
 }
 
-/// Types of supported operations (MVP version)
+/// Attribute structures for each operation
+#[derive(Debug, Clone)]
+pub struct Conv2DAttrs {
+    pub kernel_shape: [usize; 2],
+    pub strides: [usize; 2],
+    pub pads: [usize; 4],
+    pub dilations: [usize; 2],
+    pub group: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct DepthwiseConv2DAttrs {
+    pub kernel_shape: [usize; 2],
+    pub strides: [usize; 2],
+    pub pads: [usize; 4],
+    pub dilations: [usize; 2],
+    pub depth_multiplier: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct BatchNormAttrs {
+    pub epsilon: f32,
+    pub momentum: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct AveragePoolAttrs {
+    pub kernel_shape: [usize; 2],
+    pub strides: [usize; 2],
+    pub pads: [usize; 4],
+    pub count_include_pad: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct MatMulAttrs {
+    pub trans_a: bool,
+    pub trans_b: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReshapeAttrs {
+    pub shape: Vec<isize>,
+    pub allowzero: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransposeAttrs {
+    pub perm: Vec<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConcatAttrs {
+    pub axis: usize,
+}
+
+/// Types of supported operations
 #[derive(Debug, Clone)]
 pub enum OpKind {
-    Input,            // Value provided from outside
-    Constant(Tensor), // Constant embedded in the graph
-    Add,              // Element-wise addition
-    MatMul,           // Matrix multiplication (2D x 2D)
-    Relu,             // Element-wise ReLU
+    Input,                                      // Value provided from outside
+    Constant(Tensor),                           // Constant embedded in the graph
+    Add,                                        // Element-wise addition
+    Mul,                                        // Element-wise multiplication
+    MatMul(Option<MatMulAttrs>),                // Matrix multiplication (2D x 2D)
+    Relu,                                       // Element-wise ReLU
+    Relu6,                                      // Element-wise ReLU6 (clamp to [0, 6])
+    HardSwish,                                  // Element-wise HardSwish
+    Conv2D(Conv2DAttrs),                        // 2D Convolution
+    DepthwiseConv2D(DepthwiseConv2DAttrs),      // Depthwise 2D Convolution
+    BatchNorm(Option<BatchNormAttrs>),          // Batch Normalization
+    AveragePool(AveragePoolAttrs),              // Average Pooling
+    GlobalAveragePool,                          // Global Average Pooling
+    Reshape(ReshapeAttrs),                      // Reshape tensor
+    Transpose(TransposeAttrs),                  // Transpose tensor
+    Concat(ConcatAttrs),                        // Concatenate tensors
 }
 
 /// Node in graph
@@ -129,14 +195,77 @@ impl CpuBackend {
                     let b = values.get(&node.inputs[1]).expect("Add missing input 1");
                     add(a, b)?
                 }
-                OpKind::MatMul => {
+                OpKind::Mul => {
+                    let a = values.get(&node.inputs[0]).expect("Mul missing input 0");
+                    let b = values.get(&node.inputs[1]).expect("Mul missing input 1");
+                    mul(a, b)?
+                }
+                OpKind::MatMul(attrs) => {
                     let a = values.get(&node.inputs[0]).expect("MatMul missing input 0");
                     let b = values.get(&node.inputs[1]).expect("MatMul missing input 1");
-                    matmul(a, b)?
+                    matmul(a, b, attrs.as_ref())?
                 }
                 OpKind::Relu => {
                     let x = values.get(&node.inputs[0]).expect("Relu missing input 0");
                     relu(x)
+                }
+                OpKind::Relu6 => {
+                    let x = values.get(&node.inputs[0]).expect("Relu6 missing input 0");
+                    relu6(x)
+                }
+                OpKind::HardSwish => {
+                    let x = values.get(&node.inputs[0]).expect("HardSwish missing input 0");
+                    hard_swish(x)
+                }
+                OpKind::Conv2D(attrs) => {
+                    let input = values.get(&node.inputs[0]).expect("Conv2D missing input 0");
+                    let kernel = values.get(&node.inputs[1]).expect("Conv2D missing kernel");
+                    let bias = if node.inputs.len() > 2 {
+                        Some(values.get(&node.inputs[2]).expect("Conv2D missing bias"))
+                    } else {
+                        None
+                    };
+                    conv2d(input, kernel, bias, attrs)?
+                }
+                OpKind::DepthwiseConv2D(attrs) => {
+                    let input = values.get(&node.inputs[0]).expect("DepthwiseConv2D missing input 0");
+                    let kernel = values.get(&node.inputs[1]).expect("DepthwiseConv2D missing kernel");
+                    let bias = if node.inputs.len() > 2 {
+                        Some(values.get(&node.inputs[2]).expect("DepthwiseConv2D missing bias"))
+                    } else {
+                        None
+                    };
+                    depthwise_conv2d(input, kernel, bias, attrs)?
+                }
+                OpKind::BatchNorm(attrs) => {
+                    let input = values.get(&node.inputs[0]).expect("BatchNorm missing input");
+                    let scale = values.get(&node.inputs[1]).expect("BatchNorm missing scale");
+                    let bias = values.get(&node.inputs[2]).expect("BatchNorm missing bias");
+                    let mean = values.get(&node.inputs[3]).expect("BatchNorm missing mean");
+                    let var = values.get(&node.inputs[4]).expect("BatchNorm missing var");
+                    batch_norm(input, scale, bias, mean, var, attrs.as_ref())?
+                }
+                OpKind::AveragePool(attrs) => {
+                    let input = values.get(&node.inputs[0]).expect("AveragePool missing input");
+                    average_pool(input, attrs)?
+                }
+                OpKind::GlobalAveragePool => {
+                    let input = values.get(&node.inputs[0]).expect("GlobalAveragePool missing input");
+                    global_average_pool(input)?
+                }
+                OpKind::Reshape(attrs) => {
+                    let input = values.get(&node.inputs[0]).expect("Reshape missing input");
+                    reshape(input, attrs)?
+                }
+                OpKind::Transpose(attrs) => {
+                    let input = values.get(&node.inputs[0]).expect("Transpose missing input");
+                    transpose(input, attrs)?
+                }
+                OpKind::Concat(attrs) => {
+                    let inputs: Vec<&Tensor> = node.inputs.iter()
+                        .map(|id| values.get(id).expect("Concat missing input"))
+                        .collect();
+                    concat(&inputs, attrs)?
                 }
             };
 
@@ -173,7 +302,23 @@ fn add(a: &Tensor, b: &Tensor) -> anyhow::Result<Tensor> {
     Ok(out)
 }
 
-fn matmul(a: &Tensor, b: &Tensor) -> anyhow::Result<Tensor> {
+fn mul(a: &Tensor, b: &Tensor) -> anyhow::Result<Tensor> {
+    anyhow::ensure!(
+        a.desc.shape == b.desc.shape,
+        "Mul shape mismatch: {:?} vs {:?}",
+        a.desc.shape,
+        b.desc.shape
+    );
+
+    let mut out = Tensor::zeros(a.desc.shape.clone());
+    for i in 0..a.len() {
+        out.data[i] = a.data[i] * b.data[i];
+    }
+    Ok(out)
+}
+
+fn matmul(a: &Tensor, b: &Tensor, _attrs: Option<&MatMulAttrs>) -> anyhow::Result<Tensor> {
+    // TODO: Implement transpose support
     anyhow::ensure!(
         a.desc.shape.len() == 2 && b.desc.shape.len() == 2,
         "MatMul expects 2D tensors, got {:?} and {:?}",
@@ -210,6 +355,63 @@ fn relu(x: &Tensor) -> Tensor {
         }
     }
     out
+}
+
+fn relu6(x: &Tensor) -> Tensor {
+    let mut out = x.clone();
+    for v in &mut out.data {
+        *v = v.clamp(0.0, 6.0);
+    }
+    out
+}
+
+fn hard_swish(x: &Tensor) -> Tensor {
+    let mut out = x.clone();
+    for v in &mut out.data {
+        // HardSwish: x * relu6(x + 3) / 6
+        *v = *v * (*v + 3.0).clamp(0.0, 6.0) / 6.0;
+    }
+    out
+}
+
+fn conv2d(_input: &Tensor, _kernel: &Tensor, _bias: Option<&Tensor>, _attrs: &Conv2DAttrs) -> anyhow::Result<Tensor> {
+    // TODO: Implement Conv2D kernel
+    anyhow::bail!("Conv2D not yet implemented")
+}
+
+fn depthwise_conv2d(_input: &Tensor, _kernel: &Tensor, _bias: Option<&Tensor>, _attrs: &DepthwiseConv2DAttrs) -> anyhow::Result<Tensor> {
+    // TODO: Implement DepthwiseConv2D kernel
+    anyhow::bail!("DepthwiseConv2D not yet implemented")
+}
+
+fn batch_norm(_input: &Tensor, _scale: &Tensor, _bias: &Tensor, _mean: &Tensor, _var: &Tensor, _attrs: Option<&BatchNormAttrs>) -> anyhow::Result<Tensor> {
+    // TODO: Implement BatchNorm kernel
+    anyhow::bail!("BatchNorm not yet implemented")
+}
+
+fn average_pool(_input: &Tensor, _attrs: &AveragePoolAttrs) -> anyhow::Result<Tensor> {
+    // TODO: Implement AveragePool kernel
+    anyhow::bail!("AveragePool not yet implemented")
+}
+
+fn global_average_pool(_input: &Tensor) -> anyhow::Result<Tensor> {
+    // TODO: Implement GlobalAveragePool kernel
+    anyhow::bail!("GlobalAveragePool not yet implemented")
+}
+
+fn reshape(_input: &Tensor, _attrs: &ReshapeAttrs) -> anyhow::Result<Tensor> {
+    // TODO: Implement Reshape kernel
+    anyhow::bail!("Reshape not yet implemented")
+}
+
+fn transpose(_input: &Tensor, _attrs: &TransposeAttrs) -> anyhow::Result<Tensor> {
+    // TODO: Implement Transpose kernel
+    anyhow::bail!("Transpose not yet implemented")
+}
+
+fn concat(_inputs: &[&Tensor], _attrs: &ConcatAttrs) -> anyhow::Result<Tensor> {
+    // TODO: Implement Concat kernel
+    anyhow::bail!("Concat not yet implemented")
 }
 
 /// ---------- Mini sample usage ----------
