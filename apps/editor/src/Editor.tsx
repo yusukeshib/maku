@@ -4,7 +4,6 @@ import {
   applyEdgeChanges,
   addEdge,
   Background,
-  Controls,
   type OnConnect,
   type OnEdgesChange,
   type OnNodesChange,
@@ -12,7 +11,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useState } from "react";
-import { nodeTypes, type MakuFlowNode, OP_TO_NODE_TYPE, type MakuOpType } from "./maku/nodes";
+import { nodeTypes, type MakuFlowNode, OP_TO_NODE_TYPE, type MakuOpType } from "./components/types";
 import { NodePalette } from "./components/NodePalette";
 
 const initialNodes: MakuFlowNode[] = [
@@ -163,7 +162,6 @@ export function Editor() {
         fitView
       >
         <Background />
-        <Controls />
       </ReactFlow>
     </div>
   );
