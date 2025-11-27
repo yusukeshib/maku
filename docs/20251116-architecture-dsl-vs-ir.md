@@ -1,20 +1,20 @@
-# Architecture Decision: DSL vs Internal IR
+# アーキテクチャ決定: DSL vs 内部IR
 
-## Context
+## 背景
 
-When building the maku compute engine with React UI capabilities, a fundamental question arose:
+React UI機能を備えたmaku計算エンジンを構築する際、基本的な問いが生じました:
 
-**Should the React UI DSL and the internal IR be the same, or should they be separate?**
+**React UI DSLと内部IRは同じであるべきか、それとも別々であるべきか?**
 
-## Current Implementation
+## 現在の実装
 
-The codebase already implements a **2-layer separation**:
+コードベースはすでに**2層分離**を実装しています:
 
-1. **Internal IR (Core)**: `ValueId(u32)`, `NodeId(u32)` - defined in `lib/maku/src/lib.rs`
-2. **JavaScript DSL**: String-based IDs, JSON-serializable - defined in `lib/wasm/src/lib.rs`
+1. **内部IR (コア)**: `ValueId(u32)`, `NodeId(u32)` - `lib/maku/src/lib.rs`で定義
+2. **JavaScript DSL**: 文字列ベースのID、JSON直列化可能 - `lib/wasm/src/lib.rs`で定義
 
 ```rust
-// Internal IR
+// 内部IR
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ValueId(pub u32);
 
@@ -33,80 +33,80 @@ pub struct JsNode {
 }
 ```
 
-## Decision: Keep Them Separate ✅
+## 決定: 分離を維持する ✅
 
-### Rationale
+### 根拠
 
-Given the project's goals (MLIR-inspired design, optimizer/fusion implementation, and library ecosystem), **separation is the correct approach**.
+プロジェクトの目標（MLIRにインスパイアされた設計、オプティマイザ/フュージョンの実装、ライブラリエコシステム）を考慮すると、**分離が正しいアプローチ**です。
 
-### Benefits of Separation
+### 分離の利点
 
-#### 1. Enables Optimization Pipeline
+#### 1. 最適化パイプラインを可能にする
 
 ```
-React UI (High-level DSL)
-  ↓ Deserialization
-Graph IR (Internal IR)
-  ↓ Optimization passes
-Optimized Graph
-  ↓ Lowering
+React UI (高レベルDSL)
+  ↓ デシリアライゼーション
+Graph IR (内部IR)
+  ↓ 最適化パス
+最適化されたグラフ
+  ↓ 低レベル化
 Loop IR / Kernel IR
   ↓
 CPU / SIMD / WebGPU
 ```
 
-#### 2. JavaScript Ergonomics
+#### 2. JavaScriptの人間工学
 
-- String IDs (`"layer1"`, `"relu_out"`) are human-readable
-- JSON serializable out of the box
-- Perfect for visual editing in React UI
-- Easy debugging and inspection
+- 文字列ID（`"layer1"`, `"relu_out"`）は人間が読みやすい
+- そのままJSONシリアライズ可能
+- React UIでの視覚的編集に最適
+- デバッグと検査が容易
 
-#### 3. Internal IR Freedom
+#### 3. 内部IRの自由度
 
-- Can evolve the internal IR aggressively while keeping JS API stable
-- Examples of future changes:
-  - Convert `ValueId` to SSA form
-  - Add type inference system
-  - Implement memory planning
-  - Add backend-specific optimizations
+- JS APIを安定させたまま、内部IRを積極的に進化させることができる
+- 将来の変更例:
+  - `ValueId`をSSA形式に変換
+  - 型推論システムの追加
+  - メモリプランニングの実装
+  - バックエンド固有の最適化の追加
 
-#### 4. Industry-Standard Pattern
+#### 4. 業界標準パターン
 
-This matches the design of established frameworks:
+これは確立されたフレームワークの設計と一致しています:
 
-- **TensorFlow**: Python API (high-level) ⇄ GraphDef (low-level IR)
+- **TensorFlow**: Python API (高レベル) ⇄ GraphDef (低レベルIR)
 - **PyTorch**: Python API ⇄ TorchScript
-- **MLIR**: Multiple abstraction levels with progressive lowering
+- **MLIR**: 段階的な低レベル化を伴う複数の抽象レベル
 
-## Library Ecosystem Design
+## ライブラリエコシステムの設計
 
-### Proposed 3-Layer Architecture
+### 提案する3層アーキテクチャ
 
 ```
 ┌─────────────────────────────────────────┐
-│  High-level DSL (React UI / Package)    │
-│  - String-based IDs                      │
-│  - Human-readable JSON                   │
-│  - Composable functions/blocks           │
+│  高レベルDSL (React UI / パッケージ)     │
+│  - 文字列ベースID                        │
+│  - 人間が読めるJSON                      │
+│  - 合成可能な関数/ブロック               │
 └────────────────┬────────────────────────┘
-                 │ serialize/deserialize
+                 │ シリアライズ/デシリアライズ
 ┌────────────────▼────────────────────────┐
-│  Package Format (Interchange Layer)     │
-│  - Stable, versioned schema              │
-│  - Metadata (author, version, deps)      │
-│  - Input/output signatures               │
+│  パッケージフォーマット (交換層)         │
+│  - 安定したバージョン管理スキーマ        │
+│  - メタデータ (作者、バージョン、依存)   │
+│  - 入出力シグネチャ                      │
 └────────────────┬────────────────────────┘
-                 │ import/compile
+                 │ インポート/コンパイル
 ┌────────────────▼────────────────────────┐
-│  Core IR (Optimization Target)          │
-│  - ValueId(u32), SSA form                │
-│  - Type-checked, shape-inferred          │
-│  - Backend-agnostic                      │
+│  コアIR (最適化ターゲット)               │
+│  - ValueId(u32)、SSA形式                 │
+│  - 型チェック済み、形状推論済み          │
+│  - バックエンド非依存                    │
 └─────────────────────────────────────────┘
 ```
 
-### Package Format Example
+### パッケージフォーマットの例
 
 ```json
 {
@@ -149,7 +149,7 @@ This matches the design of established frameworks:
 }
 ```
 
-### Usage in React UI
+### React UIでの使用方法
 
 ```jsx
 import { usePackage } from "maku-packages";
@@ -167,10 +167,10 @@ function MyModel() {
 }
 ```
 
-### Internal Processing
+### 内部処理
 
 ```rust
-// Package Manager
+// パッケージマネージャー
 pub struct PackageRegistry {
     packages: HashMap<String, Package>,
 }
@@ -182,60 +182,60 @@ pub struct Package {
     pub signature: Signature,
 }
 
-// Compile to Core IR on import
+// インポート時にコアIRへコンパイル
 impl PackageRegistry {
     pub fn instantiate(&self, name: &str, context: &mut GraphContext) -> SubGraph {
         let pkg = self.packages.get(name).unwrap();
-        // Convert JsGraph -> Core Graph
-        // Integrate into context namespace
+        // JsGraph -> Core Graph への変換
+        // コンテキスト名前空間への統合
     }
 }
 ```
 
-## Key Design Principles
+## 主要な設計原則
 
-### 1. Package Format Stability
+### 1. パッケージフォーマットの安定性
 
-- **Semantic versioning**: Major.Minor.Patch
-- **Strict breaking change management**
-- **Backward compatibility guarantees**
-- **Clear migration paths** for version updates
+- **セマンティックバージョニング**: Major.Minor.Patch
+- **厳格な破壊的変更管理**
+- **後方互換性保証**
+- **明確な移行パス** (バージョン更新時)
 
-### 2. Core IR Evolution Freedom
+### 2. コアIR進化の自由度
 
-- Can add optimization passes without affecting packages
-- Support new backends transparently
-- Conversion layer isolates changes
-- Internal refactoring doesn't break ecosystem
+- パッケージに影響を与えずに最適化パスを追加できる
+- 新しいバックエンドを透過的にサポート
+- 変換レイヤーが変更を分離
+- 内部リファクタリングがエコシステムを壊さない
 
-### 3. Type System & Signatures
+### 3. 型システムとシグネチャ
 
-- **Parametric shapes**: `["batch", "channels", H, W]`
-- **Type checking** for composition compatibility
-- **Shape inference** (Phase 1) becomes critical
-- **Constraint propagation** for symbolic dimensions
+- **パラメトリック形状**: `["batch", "channels", H, W]`
+- **型チェック** (合成互換性)
+- **形状推論** (フェーズ1) が重要になる
+- **制約伝播** (シンボリック次元)
 
-## Inspiration from Existing Ecosystems
+## 既存エコシステムからのインスピレーション
 
-| Project              | Package Format | Key Features                              |
-| -------------------- | -------------- | ----------------------------------------- |
-| **ONNX**             | Protobuf       | AI model interchange, operator registry   |
-| **npm**              | JSON           | Version management, dependency resolution |
-| **Hugging Face Hub** | Git-based      | Model & dataset sharing, community-driven |
-| **TVM PackedFunc**   | Binary         | Pre-compiled functions, cross-platform    |
+| プロジェクト         | パッケージフォーマット | 主要機能                                   |
+| -------------------- | ---------------------- | ------------------------------------------ |
+| **ONNX**             | Protobuf               | AIモデル交換、オペレータレジストリ         |
+| **npm**              | JSON                   | バージョン管理、依存関係解決               |
+| **Hugging Face Hub** | Gitベース              | モデル・データセット共有、コミュニティ     |
+| **TVM PackedFunc**   | バイナリ               | プリコンパイル関数、クロスプラットフォーム |
 
-## Current Issues & Improvements
+## 現在の課題と改善策
 
-### Problem: String-to-ID Conversion Cost
+### 問題: 文字列からIDへの変換コスト
 
-Current implementation in `lib/wasm/src/lib.rs:47-60`:
+現在の実装 `lib/wasm/src/lib.rs:47-60`:
 
 ```rust
 fn str_to_value_id(s: &str) -> ValueId {
     if let Ok(n) = s.parse::<u32>() {
         ValueId(n)
     } else {
-        // Crude hash (MVP only)
+        // 粗いハッシュ (MVP のみ)
         use std::hash::{Hash, Hasher};
         let mut h = std::collections::hash_map::DefaultHasher::new();
         s.hash(&mut h);
@@ -245,9 +245,9 @@ fn str_to_value_id(s: &str) -> ValueId {
 }
 ```
 
-### Recommended Improvements
+### 推奨される改善策
 
-#### 1. Maintain Bidirectional Mapping
+#### 1. 双方向マッピングの維持
 
 ```rust
 pub struct GraphContext {
@@ -274,74 +274,74 @@ impl GraphContext {
 }
 ```
 
-#### 2. Shape Inference
+#### 2. 形状推論
 
-Currently `value_types` is only partially populated (`lib/maku/src/lib.rs:88`). Need to:
+現在、`value_types`は部分的にのみ埋められています（`lib/maku/src/lib.rs:88`）。必要なこと:
 
-- Implement shape inference for all operations
-- Propagate type information through the graph
-- Catch shape mismatches at compile time
+- すべての操作に対して形状推論を実装
+- グラフ全体に型情報を伝播
+- コンパイル時に形状の不一致をキャッチ
 
-## Implementation Roadmap
+## 実装ロードマップ
 
-### Phase 0 (Current) ✓
+### フェーズ 0 (現在) ✓
 
-- [x] Basic Tensor abstraction
-- [x] Graph IR
-- [x] CPU Backend
-- [x] WASM Wrapper
-- [x] Basic JsGraph ⇄ Core Graph conversion
+- [x] 基本的なTensor抽象化
+- [x] グラフIR
+- [x] CPUバックエンド
+- [x] WASMラッパー
+- [x] 基本的なJsGraph ⇄ コアグラフ変換
 
-### Phase 1 (Next Priority)
+### フェーズ 1 (次の優先事項)
 
-- [ ] GraphContext with name management
-- [ ] Shape inference engine
-- [ ] Package Format definition (JSON Schema)
-- [ ] Static type checking
-- [ ] Improved error diagnostics
+- [ ] 名前管理機能付きGraphContext
+- [ ] 形状推論エンジン
+- [ ] パッケージフォーマット定義 (JSON Schema)
+- [ ] 静的型チェック
+- [ ] 改善されたエラー診断
 
-### Phase 2 (Operator Expansion)
+### フェーズ 2 (オペレータ拡張)
 
-- [ ] Package Registry implementation
-- [ ] Dependency resolution
-- [ ] Versioning & compatibility checks
-- [ ] Conv2d, Reduce, Broadcast operations
-- [ ] Extended activation functions
+- [ ] パッケージレジストリ実装
+- [ ] 依存関係解決
+- [ ] バージョニングと互換性チェック
+- [ ] Conv2d、Reduce、Broadcast操作
+- [ ] 拡張活性化関数
 
-### Phase 3 (Ecosystem)
+### フェーズ 3 (エコシステム)
 
-- [ ] Web UI for browsing packages
-- [ ] Package upload/download
-- [ ] Validation & sandboxed execution
-- [ ] Community package repository
+- [ ] パッケージ閲覧用Web UI
+- [ ] パッケージアップロード/ダウンロード
+- [ ] 検証とサンドボックス実行
+- [ ] コミュニティパッケージリポジトリ
 
-### Phase 4 (Advanced Features)
+### フェーズ 4 (高度な機能)
 
-- [ ] Pre-compiled artifacts (WASM binaries)
-- [ ] Differential privacy support (untrusted packages)
-- [ ] Federated learning capabilities
-- [ ] Cross-platform binary distribution
+- [ ] プリコンパイル成果物 (WASMバイナリ)
+- [ ] 差分プライバシーサポート (信頼されていないパッケージ)
+- [ ] 連合学習機能
+- [ ] クロスプラットフォームバイナリ配布
 
-### Phase 5 (GPU & Optimization)
+### フェーズ 5 (GPU & 最適化)
 
-- [ ] WebGPU backend (wgpu + WGSL)
-- [ ] Kernel fusion
-- [ ] Auto-tuning
-- [ ] Memory optimization
+- [ ] WebGPUバックエンド (wgpu + WGSL)
+- [ ] カーネルフュージョン
+- [ ] 自動チューニング
+- [ ] メモリ最適化
 
-## Conclusion
+## 結論
 
-**The separation between DSL and Internal IR is essential** for:
+**DSLと内部IRの分離は以下のために不可欠です**:
 
-✅ User-friendly, human-readable high-level API
-✅ Stable, versioned package interchange format
-✅ Freedom to optimize and evolve internal representation
-✅ Scalable ecosystem with community packages
-✅ Industry-standard architecture pattern
+✅ ユーザーフレンドリーで人間が読みやすい高レベルAPI
+✅ 安定したバージョン管理されたパッケージ交換フォーマット
+✅ 内部表現を最適化し進化させる自由度
+✅ コミュニティパッケージを持つスケーラブルなエコシステム
+✅ 業界標準のアーキテクチャパターン
 
-This design enables maku to achieve its vision: **"A universal compute runtime that works everywhere, built in Rust."**
+この設計により、makuはそのビジョンを達成できます: **「Rustで構築された、どこでも動作するユニバーサル計算ランタイム。」**
 
-## References
+## 参考文献
 
 - MLIR (Multi-Level Intermediate Representation): https://mlir.llvm.org/
 - ONNX: https://onnx.ai/
@@ -351,6 +351,6 @@ This design enables maku to achieve its vision: **"A universal compute runtime t
 
 ---
 
-**Author**: Yusuke Shibata
-**Date**: 2025-01-16
-**Status**: Accepted
+**著者**: Yusuke Shibata
+**日付**: 2025-01-16
+**ステータス**: 承認済み
