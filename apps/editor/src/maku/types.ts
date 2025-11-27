@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // ========== Base Schemas ==========
 
-export const JsTensorSchema = z.object({
+export const MakuTensorSchema = z.object({
   shape: z.array(z.number()),
   data: z.array(z.number()),
 });
@@ -57,9 +57,9 @@ export const ConcatAttrsSchema = z.object({
 
 // ========== Operation Schemas (Discriminated Union) ==========
 
-export const JsOpSchema = z.discriminatedUnion("op", [
+export const MakuOpSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("Input") }),
-  z.object({ op: z.literal("Constant"), tensor: JsTensorSchema }),
+  z.object({ op: z.literal("Constant"), tensor: MakuTensorSchema }),
   z.object({ op: z.literal("Add") }),
   z.object({ op: z.literal("Mul") }),
   z.object({ op: z.literal("MatMul"), attrs: MatMulAttrsSchema.optional() }),
@@ -78,25 +78,25 @@ export const JsOpSchema = z.discriminatedUnion("op", [
 
 // ========== Node Schema ==========
 
-export const JsNodeSchema = z.intersection(
+export const MakuNodeSchema = z.intersection(
   z.object({
     id: z.string(),
     inputs: z.array(z.string()),
     output: z.string(),
   }),
-  JsOpSchema
+  MakuOpSchema
 );
 
 // ========== Graph Schema ==========
 
-export const JsGraphSchema = z.object({
-  nodes: z.array(JsNodeSchema),
+export const MakuGraphSchema = z.object({
+  nodes: z.array(MakuNodeSchema),
   outputs: z.array(z.string()),
 });
 
 // ========== Inferred TypeScript Types ==========
 
-export type JsTensor = z.infer<typeof JsTensorSchema>;
+export type MakuTensor = z.infer<typeof MakuTensorSchema>;
 export type Conv2DAttrs = z.infer<typeof Conv2DAttrsSchema>;
 export type DepthwiseConv2DAttrs = z.infer<typeof DepthwiseConv2DAttrsSchema>;
 export type BatchNormAttrs = z.infer<typeof BatchNormAttrsSchema>;
@@ -105,6 +105,6 @@ export type MatMulAttrs = z.infer<typeof MatMulAttrsSchema>;
 export type ReshapeAttrs = z.infer<typeof ReshapeAttrsSchema>;
 export type TransposeAttrs = z.infer<typeof TransposeAttrsSchema>;
 export type ConcatAttrs = z.infer<typeof ConcatAttrsSchema>;
-export type JsOp = z.infer<typeof JsOpSchema>;
-export type JsNode = z.infer<typeof JsNodeSchema>;
-export type JsGraph = z.infer<typeof JsGraphSchema>;
+export type MakuOp = z.infer<typeof MakuOpSchema>;
+export type MakuNode = z.infer<typeof MakuNodeSchema>;
+export type MakuGraph = z.infer<typeof MakuGraphSchema>;
